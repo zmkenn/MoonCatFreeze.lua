@@ -1,81 +1,118 @@
-local player = game.Players.LocalPlayer
-local backpack = player:WaitForChild("Backpack")
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "PetDuplicator"
-screenGui.ResetOnSpawn = false
+-- 🐾 GUI Pet Spawner Script with Anti-Removal and Unique Age/Weight
+-- Use this in Delta after uploading to your GitHub:
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
 
--- Frame
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 300, 0, 200)
-frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- UI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PetSpawnerUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 320, 0, 280)
+frame.Position = UDim2.new(0.5, -160, 0.5, -140)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.Parent = screenGui
 
-local uicorner = Instance.new("UICorner", frame)
-uicorner.CornerRadius = UDim.new(0, 10)
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.Parent = frame
 
--- Inputs
-local function createInput(labelText, posY)
-    local label = Instance.new("TextLabel", frame)
-    label.Text = labelText
+local function createInput(name, posY)
+    local label = Instance.new("TextLabel")
+    label.Text = name .. ":"
     label.Position = UDim2.new(0, 10, 0, posY)
     label.Size = UDim2.new(0, 80, 0, 25)
-    label.TextColor3 = Color3.new(1, 1, 1)
     label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 18
+    label.Parent = frame
 
-    local box = Instance.new("TextBox", frame)
-    box.PlaceholderText = labelText
-    box.Position = UDim2.new(0, 100, 0, posY)
-    box.Size = UDim2.new(0, 180, 0, 25)
-    box.TextColor3 = Color3.new(0, 0, 0)
-    box.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    local input = Instance.new("TextBox")
+    input.PlaceholderText = name
+    input.Position = UDim2.new(0, 100, 0, posY)
+    input.Size = UDim2.new(0, 200, 0, 25)
+    input.Font = Enum.Font.SourceSans
+    input.TextSize = 18
+    input.TextColor3 = Color3.new(0, 0, 0)
+    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    input.Parent = frame
 
-    return box
+    return input
 end
 
-local petNameInput = createInput("Pet Name", 10)
+local petInput = createInput("Pet Name", 10)
 local ageInput = createInput("Age", 45)
 local weightInput = createInput("Weight", 80)
 
--- Button
-local button = Instance.new("TextButton", frame)
-button.Position = UDim2.new(0.5, -100, 0, 120)
-button.Size = UDim2.new(0, 200, 0, 40)
-button.Text = "Duplicate Pet"
-button.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 24
+local spawnBtn = Instance.new("TextButton")
+spawnBtn.Position = UDim2.new(0.5, -100, 0, 130)
+spawnBtn.Size = UDim2.new(0, 200, 0, 50)
+spawnBtn.Text = "SPAWN PET"
+spawnBtn.Font = Enum.Font.SourceSansBold
+spawnBtn.TextSize = 24
+spawnBtn.TextColor3 = Color3.new(1, 1, 1)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+spawnBtn.Parent = frame
 
-button.MouseButton1Click:Connect(function()
-    local name = petNameInput.Text
-    if not name or name == "" then
-        warn("❌ Pet name is required")
-        return
-    end
-
-    local sourceTool = backpack:FindFirstChild(name)
-    if not sourceTool then
-        warn("❌ Pet not found in backpack: " .. name)
-        return
-    end
-
-    local clone = sourceTool:Clone()
-    clone.Parent = backpack
-
+spawnBtn.MouseButton1Click:Connect(function()
+    local petName = petInput.Text
     local age = tonumber(ageInput.Text)
     local weight = tonumber(weightInput.Text)
 
-    if age and clone:FindFirstChild("Age") then
-        clone.Age.Value = age
+    if not petName or petName == "" then
+        warn("❌ Please enter a pet name.")
+        return
     end
 
-    if weight and clone:FindFirstChild("Weight") then
-        clone.Weight.Value = weight
+    if not age then age = math.random(1, 999) end
+    if not weight then weight = math.random(1, 999) + math.random() end
+
+    local foundTool = nil
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("Tool") and string.lower(obj.Name) == string.lower(petName) then
+            foundTool = obj
+            break
+        end
     end
 
-    print("✅ Duplicated:", name, " | Age:", age or "default", "| Weight:", weight or "default")
+    if not foundTool then
+        warn("❌ Pet Tool not found in ReplicatedStorage: " .. petName)
+        return
+    end
+
+    local cloned = foundTool:Clone()
+    cloned.Name = petName .. " [" .. string.format("%.2f", weight) .. " KG] [Age " .. age .. "]"
+    cloned.Parent = LocalPlayer.Backpack
+
+    -- Anti-removal logic
+    cloned.AncestryChanged:Connect(function()
+        if not cloned:IsDescendantOf(LocalPlayer.Backpack) then
+            wait(0.1)
+            cloned.Parent = LocalPlayer.Backpack
+        end
+    end)
+
+    -- Set custom attributes
+    local ageValue = cloned:FindFirstChild("Age") or Instance.new("NumberValue", cloned)
+    ageValue.Name = "Age"
+    ageValue.Value = age
+
+    local weightValue = cloned:FindFirstChild("Weight") or Instance.new("NumberValue", cloned)
+    weightValue.Name = "Weight"
+    weightValue.Value = weight
+
+    print("✅ Spawned " .. cloned.Name)
 end)
 
-print("✅ Pet Duplicator GUI Loaded")
+print("✅ Pet Spawner GUI with anti-removal and unique properties loaded")
