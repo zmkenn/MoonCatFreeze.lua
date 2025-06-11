@@ -1,8 +1,6 @@
--- ✅ GUI-Based Raccoon Pet Spawner with Age/Weight
--- Freeze-Free Pet Structure Viewer and Freezing Functionality
+-- ✅ Freeze Existing MoonCat Pets (No spawner, no ReplicatedStorage)
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
 -- ✅ GUI Log Printer to Display Cat Structure
@@ -29,7 +27,8 @@ local function log(text)
     logBox.Text = logBox.Text .. text .. "\n"
 end
 
-local function scanCatModelsOnceAndFreeze()
+-- ✅ Freeze MoonCat Pets Already in Workspace
+local function freezeMoonCats()
     local pets = workspace:FindFirstChild("PetsPhysical")
     if not pets then
         log("❌ PetsPhysical not found in workspace")
@@ -44,23 +43,24 @@ local function scanCatModelsOnceAndFreeze()
 
     for _, model in ipairs(mover:GetChildren()) do
         if model:IsA("Model") and model.Name == "Cat" then
-            log("\n📦 Found Cat Model:")
+            log("📦 Freezing MoonCat Model:")
             for _, descendant in ipairs(model:GetDescendants()) do
                 task.wait(0.01)
                 log(descendant:GetFullName())
 
-                -- ✅ Freeze the cat's parts
                 if descendant:IsA("BasePart") then
                     descendant.Anchored = true
+                    log("✅ Anchored: " .. descendant.Name)
                 end
             end
 
-            -- ✅ Attempt to retain passive effects
-            if model:FindFirstChild("Humanoid") then
-                model.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            -- ✅ If it has passive effects, this keeps it "alive"
+            local humanoid = model:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
             end
         end
     end
 end
 
-scanCatModelsOnceAndFreeze()
+freezeMoonCats()
