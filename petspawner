@@ -1,35 +1,92 @@
+-- ✅ GUI Pet Spawner (with Name, Age, Weight)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- 🔍 Try to find a remote related to pets
+local petRemote = nil
+for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+    if obj:IsA("RemoteEvent") and obj.Name:lower():find("spawn") then
+        petRemote = obj
+        break
+    end
+end
+
+if not petRemote then
+    warn("❌ No pet-spawn RemoteEvent found.")
+    return
+end
+
+-- 📦 Create GUI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "PetSpawnerGUI"
+screenGui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 320, 0, 250)
+frame.Position = UDim2.new(0.5, -160, 0.5, -125)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Active = true
+frame.Draggable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+title.Text = "🐾 Pet Spawner"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+
+local nameBox = Instance.new("TextBox", frame)
+nameBox.PlaceholderText = "Enter Pet Name (e.g., Raccoon)"
+nameBox.Position = UDim2.new(0, 10, 0, 50)
+nameBox.Size = UDim2.new(1, -20, 0, 30)
+nameBox.Text = ""
+
+local ageBox = Instance.new("TextBox", frame)
+ageBox.PlaceholderText = "Enter Age"
+ageBox.Position = UDim2.new(0, 10, 0, 90)
+ageBox.Size = UDim2.new(1, -20, 0, 30)
+ageBox.Text = ""
+
+local weightBox = Instance.new("TextBox", frame)
+weightBox.PlaceholderText = "Enter Weight (e.g., 2.55)"
+weightBox.Position = UDim2.new(0, 10, 0, 130)
+weightBox.Size = UDim2.new(1, -20, 0, 30)
+weightBox.Text = ""
+
+local spawnButton = Instance.new("TextButton", frame)
+spawnButton.Text = "Spawn Pet"
+spawnButton.Position = UDim2.new(0, 10, 0, 180)
+spawnButton.Size = UDim2.new(1, -20, 0, 50)
+spawnButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnButton.Font = Enum.Font.GothamBold
+spawnButton.TextSize = 20
+
+-- 🧠 Main Logic
 spawnButton.MouseButton1Click:Connect(function()
+    local petName = nameBox.Text
     local age = tonumber(ageBox.Text)
     local weight = tonumber(weightBox.Text)
 
-    if not age or not weight then
-        warn("❌ Invalid input. Age and weight must be numbers.")
+    if petName == "" or not age or not weight then
+        warn("❌ Please enter valid pet name, age, and weight.")
         return
     end
 
-    -- 🔁 Clean decimals
-    age = math.floor(age * 100) / 100
-    weight = math.floor(weight * 100) / 100
-
-    -- 🔁 Try different formats
-    local formats = {
-        function() return petRemote:FireServer("Raccoon", age, weight) end,
-        function() return petRemote:FireServer("SpawnPet", "Raccoon", age, weight) end,
-        function() return petRemote:FireServer({Pet = "Raccoon", Age = age, Weight = weight}) end
-    }
-
-    local success = false
-    for _, try in ipairs(formats) do
-        local ok = pcall(try)
-        if ok then
-            success = true
-            break
-        end
-    end
+    -- 🧪 Try spawning using guessed remote structure
+    local success, err = pcall(function()
+        petRemote:FireServer({
+            PetType = petName,
+            Age = age,
+            Weight = weight
+        })
+    end)
 
     if success then
-        print("✅ Spawned Raccoon with age:", age, "and weight:", weight)
+        print("✅ Tried to spawn:", petName, "Age:", age, "Weight:", weight)
     else
-        warn("❌ Failed to spawn pet with all formats.")
+        warn("❌ Failed to send to remote:", err)
     end
 end)
