@@ -1,38 +1,24 @@
--- ✅ Freeze all pets locally by anchoring their parts (for Grow a Garden)
+-- 🌿 Freeze all pets (like MoonCats) on your plot
+-- This anchors pet parts so they don't move, but passives should still work if server allows
 
-local function notify(msg)
-    print("[Pet Freezer] " .. msg)
-end
-
-local function freezePet(pet)
-    if pet:IsA("Model") then
-        for _, part in ipairs(pet:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Anchored = true
-            elseif part:IsA("BodyMover") then
-                part:Destroy()
+local player = game:GetService("Players").LocalPlayer
+local function freezePets()
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChild("Owner") and obj.Owner.Value == player.Name then
+            if obj.Name:lower():find("mooncat") or obj.Name:lower():find("pet") then
+                for _, part in ipairs(obj:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Anchored = true
+                    end
+                end
             end
         end
-        notify("✔️ Frozen pet: " .. pet.Name)
     end
 end
 
-local animalsFolder = workspace:FindFirstChild("Animals") or workspace:FindFirstChild("Pets") or nil
-
-if not animalsFolder then
-    notify("❌ Could not find pet folder (e.g., Animals or Pets in workspace).")
-    return
+-- Run once and every 5 seconds to re-anchor in case new pets are added
+freezePets()
+while true do
+    wait(5)
+    freezePets()
 end
-
-notify("✅ Found pet folder: " .. animalsFolder.Name)
-
--- Freeze all current pets
-for _, pet in ipairs(animalsFolder:GetChildren()) do
-    freezePet(pet)
-end
-
--- Freeze pets that spawn later
-animalsFolder.ChildAdded:Connect(function(pet)
-    wait(0.5) -- give time to load
-    freezePet(pet)
-end)
