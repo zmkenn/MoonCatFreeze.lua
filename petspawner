@@ -1,11 +1,14 @@
--- 🌿 Freeze all pets (like MoonCats) on your plot
--- This anchors pet parts so they don't move, but passives should still work if server allows
+-- 🐱 Freeze all MoonCats owned by you
+-- Works by anchoring parts of models named "MoonCat"
 
-local player = game:GetService("Players").LocalPlayer
-local function freezePets()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Owner") and obj.Owner.Value == player.Name then
-            if obj.Name:lower():find("mooncat") or obj.Name:lower():find("pet") then
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+local function freezeMoonCats()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == "MoonCat" then
+            local owner = obj:FindFirstChild("Owner")
+            if owner and owner:IsA("ObjectValue") and owner.Value == player then
                 for _, part in ipairs(obj:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.Anchored = true
@@ -16,9 +19,9 @@ local function freezePets()
     end
 end
 
--- Run once and every 5 seconds to re-anchor in case new pets are added
-freezePets()
+-- Freeze once, then repeat every 3 seconds to cover new MoonCats
+freezeMoonCats()
 while true do
-    wait(5)
-    freezePets()
+    task.wait(3)
+    freezeMoonCats()
 end
