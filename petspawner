@@ -17,7 +17,7 @@ screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 350, 0, 250)
 frame.Position = UDim2.new(0.5, -175, 0.5, -125)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
@@ -35,7 +35,7 @@ local function createInput(name, posY)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.new(1, 1, 1)
     label.Font = Enum.Font.SourceSans
-    label.TextSize = 20
+    label.TextSize = 18
     label.Parent = frame
 
     local input = Instance.new("TextBox")
@@ -43,29 +43,29 @@ local function createInput(name, posY)
     input.Position = UDim2.new(0, 120, 0, posY)
     input.Size = UDim2.new(0, 210, 0, 30)
     input.Font = Enum.Font.SourceSans
-    input.TextSize = 20
+    input.TextSize = 18
     input.TextColor3 = Color3.new(0, 0, 0)
-    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    input.BackgroundColor3 = Color3.fromRGB(240, 240, 240)
     input.Parent = frame
 
     return input
 end
 
 local petInput = createInput("Pet Name", 20)
-local ageInput = createInput("Age", 70)
-local weightInput = createInput("Weight", 120)
+local ageInput = createInput("Age", 65)
+local weightInput = createInput("Weight", 110)
 
 local spawnBtn = Instance.new("TextButton")
-spawnBtn.Position = UDim2.new(0.5, -100, 0, 180)
+spawnBtn.Position = UDim2.new(0.5, -100, 0, 170)
 spawnBtn.Size = UDim2.new(0, 200, 0, 50)
-spawnBtn.Text = "🚀 Spawn Pet"
+spawnBtn.Text = "Spawn Pet"
 spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 24
-spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+spawnBtn.TextSize = 22
+spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 200, 100)
+spawnBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 spawnBtn.Parent = frame
 
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 8)
 corner.Parent = spawnBtn
 
 spawnBtn.MouseButton1Click:Connect(function()
@@ -77,20 +77,21 @@ spawnBtn.MouseButton1Click:Connect(function()
 
     local template = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and obj.Name == petName then
+        if obj:IsA("Model") and obj.Name == petName then
             template = obj
             break
         end
     end
 
     if not template then
-        warn("Pet Tool not found: " .. petName)
+        warn("Pet not found: " .. petName)
         return
     end
 
     local clone = template:Clone()
+    clone.Name = petName .. " [" .. tostring(weight or 0) .. " KG] [Age " .. tostring(age or 0) .. "]"
     clone.Parent = LocalPlayer.Backpack
-
+    
     if clone:FindFirstChild("Age") then
         clone.Age.Value = age or 0
     end
@@ -98,7 +99,7 @@ spawnBtn.MouseButton1Click:Connect(function()
         clone.Weight.Value = weight or 0
     end
 
-    print("✅ Spawned " .. petName .. " in inventory with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
+    print("✅ Spawned pet to inventory:", clone.Name)
 end)
 
-print("✅ Pet Spawner GUI with draggable big button loaded")
+print("✅ Pet Spawner GUI ready")
