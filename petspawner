@@ -1,10 +1,8 @@
--- ✅ Freeze ALL MoonCats + Lock their passive visual effects
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+-- ✅ Final MoonCat Freezer - Stops movement but ensures passive abilities remain active
 
--- Setup log GUI
+local player = game:GetService("Players").LocalPlayer
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "FreezeLogger"
+screenGui.Name = "FreezeLog"
 screenGui.ResetOnSpawn = false
 
 local logBox = Instance.new("TextLabel", screenGui)
@@ -12,57 +10,65 @@ logBox.Size = UDim2.new(0, 500, 0, 400)
 logBox.Position = UDim2.new(0, 20, 0, 20)
 logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.Font = Enum.Font.Code
 logBox.TextSize = 14
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextWrapped = true
 logBox.Text = ""
 
 local function log(msg)
-	logBox.Text = logBox.Text .. msg .. "\n"
+    logBox.Text = logBox.Text .. msg .. "\n"
 end
 
-local function hardFreezeAllMoonCats()
-	local pets = workspace:FindFirstChild("PetsPhysical")
-	if not pets then return log("❌ PetsPhysical not found") end
+local function freezeMoonCatsProperly()
+    local petsFolder = workspace:FindFirstChild("PetsPhysical")
+    if not petsFolder then return log("❌ PetsPhysical not found") end
 
-	local mover = pets:FindFirstChild("PetMover")
-	if not mover then return log("❌ PetMover not found") end
+    local mover = petsFolder:FindFirstChild("PetMover")
+    if not mover then return log("❌ PetMover not found") end
 
-	local count = 0
-	for _, cat in ipairs(mover:GetChildren()) do
-		if cat:IsA("Model") and cat.Name == "Cat" then
-			count += 1
+    local frozenCount = 0
+    for _, cat in pairs(mover:GetChildren()) do
+        if cat:IsA("Model") and cat.Name == "Cat" then
+            frozenCount += 1
+            log("🐾 Freezing MoonCat #" .. frozenCount)
 
-			local freezeClone = cat:Clone()
-			freezeClone.Name = "FrozenMoonCat_" .. tostring(count)
+            local root = cat:FindFirstChild("RootPart") or cat.PrimaryPart or cat:FindFirstChildWhichIsA("BasePart")
+            if root then
+                -- Freeze the MoonCat
+                for _, part in pairs(cat:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Anchored = true -- Stops movement
+                        part.CanCollide = false
+                        part:SetNetworkOwner(nil)
+                    elseif part:IsA("Humanoid") then
+                        part.WalkSpeed = 0 -- Prevents walking
+                        part.JumpPower = 0 -- Prevents jumping
+                    elseif part:IsA("Motor6D") then
+                        part:Destroy() -- Stops limb movement
+                    elseif part:IsA("Animator") or part:IsA("AnimationController") then
+                        part:Destroy() -- Stops animations
+                    end
+                end
 
-			-- Position the clone exactly at the original's pivot
-			freezeClone:PivotTo(cat:GetPivot())
+                -- Keep passive ability scripts active
+                for _, script in pairs(cat:GetChildren()) do
+                    if script:IsA("Script") or script:IsA("LocalScript") then
+                        script.Disabled = false -- Ensures passives remain functional
+                    end
+                end
 
-			-- Disable animation and movement completely
-			for _, item in ipairs(freezeClone:GetDescendants()) do
-				if item:IsA("Motor6D") or item:IsA("Animator") or item:IsA("AnimationController") then
-					item:Destroy()
-				elseif item:IsA("BasePart") then
-					item.Anchored = true
-					item.CanCollide = false
-					item:SetNetworkOwner(nil)
-				end
-			end
+                log("✅ MoonCat #" .. frozenCount .. " frozen but passive abilities active.")
+            end
+        end
+    end
 
-			-- Place frozen clone into workspace
-			freezeClone.Parent = mover
-			log("❄️ Frozen MoonCat #" .. count)
-		end
-	end
-
-	if count == 0 then
-		log("⚠️ No MoonCats found.")
-	else
-		log("✅ Done freezing " .. count .. " MoonCats.")
-	end
+    if frozenCount == 0 then
+        log("⚠️ No MoonCats found to freeze.")
+    else
+        log("🎉 Finished freezing " .. frozenCount .. " MoonCats.")
+    end
 end
 
-hardFreezeAllMoonCats()
+freezeMoonCatsProperly()
