@@ -1,5 +1,5 @@
--- 🐾 Updated Pet Spawner Script: Now adds visual pet to inventory (Backpack)
--- Use with: loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner.lua"))()
+-- 🐾 Updated GUI Pet Spawner Script that adds pet to Backpack (Inventory)
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner.lua"))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
@@ -70,15 +70,13 @@ spawnBtn.MouseButton1Click:Connect(function()
     end
 
     if not template then
-        warn("Pet tool not found: " .. petName)
+        warn("Pet Tool not found in ReplicatedStorage: " .. petName)
         return
     end
 
     local clone = template:Clone()
-    clone.Name = petName .. string.format(" [%.2f KG] [Age %d]", weight or 0, age or 0)
-    clone.Parent = LocalPlayer.Backpack
+    clone.Parent = LocalPlayer:WaitForChild("Backpack")
 
-    -- Set attributes if they exist
     if clone:FindFirstChild("Age") then
         clone.Age.Value = age or 0
     end
@@ -86,7 +84,7 @@ spawnBtn.MouseButton1Click:Connect(function()
         clone.Weight.Value = weight or 0
     end
 
-    print("✅ Spawned pet in inventory: " .. clone.Name)
+    print("✅ Tool Pet Spawned to Inventory: " .. petName .. " (Age: " .. tostring(age) .. ", Weight: " .. tostring(weight) .. ")")
 end)
 
-print("✅ Pet Spawner GUI loaded")
+print("✅ Updated Pet Spawner GUI loaded with Backpack support")
