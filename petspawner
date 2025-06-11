@@ -1,11 +1,8 @@
--- MoonCat Full Freezer with Passive Visual Lock
+-- 💡 Full MoonCat Freezer - Disables Animations, Motors, and Movement
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- Create GUI Logger
+local player = game:GetService("Players").LocalPlayer
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "FreezeLogger"
+screenGui.Name = "FreezeLog"
 screenGui.ResetOnSpawn = false
 
 local logBox = Instance.new("TextLabel", screenGui)
@@ -18,58 +15,57 @@ logBox.TextSize = 14
 logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextWrapped = true
-logBox.TextScaled = false
 logBox.Text = ""
 
 local function log(msg)
 	logBox.Text = logBox.Text .. msg .. "\n"
 end
 
--- Function to freeze all MoonCats
-local function freezeMoonCats()
+local function freezeMoonCatsProperly()
 	local petsFolder = workspace:FindFirstChild("PetsPhysical")
 	if not petsFolder then return log("❌ PetsPhysical not found") end
 
-	local petMover = petsFolder:FindFirstChild("PetMover")
-	if not petMover then return log("❌ PetMover not found") end
+	local mover = petsFolder:FindFirstChild("PetMover")
+	if not mover then return log("❌ PetMover not found") end
 
-	local count = 0
-	for _, pet in pairs(petMover:GetChildren()) do
-		if pet:IsA("Model") and pet.Name == "Cat" then
-			count += 1
-			log("📦 Freezing MoonCat #" .. count)
+	local frozenCount = 0
+	for _, cat in pairs(mover:GetChildren()) do
+		if cat:IsA("Model") and cat.Name == "Cat" then
+			frozenCount += 1
+			log("🐾 Freezing MoonCat #" .. frozenCount)
 
-			local clone = pet:Clone()
-			clone.Name = "FrozenMoonCat_" .. tostring(count)
+			local frozenClone = cat:Clone()
+			frozenClone.Name = "FrozenMoonCat_" .. tostring(frozenCount)
 
-			-- Anchor all parts in the clone
-			for _, item in pairs(clone:GetDescendants()) do
-				if item:IsA("BasePart") then
-					item.Anchored = true
-					item.CanCollide = false
-					item:SetNetworkOwner(nil)
+			-- Remove Motor6Ds to stop limb animation
+			for _, d in pairs(frozenClone:GetDescendants()) do
+				if d:IsA("Motor6D") then
+					d:Destroy()
+				elseif d:IsA("AnimationController") or d:IsA("Animator") then
+					d:Destroy()
+				elseif d:IsA("BasePart") then
+					d.Anchored = true
+					d.CanCollide = false
+					d:SetNetworkOwner(nil)
 				end
 			end
 
-			-- Place the frozen copy in the same location
-			local root = pet:FindFirstChild("RootPart") or pet.PrimaryPart or pet:FindFirstChildWhichIsA("BasePart")
+			-- Set position to same location
+			local root = cat:FindFirstChild("RootPart") or cat.PrimaryPart or cat:FindFirstChildWhichIsA("BasePart")
 			if root then
-				clone:SetPrimaryPartCFrame(root.CFrame)
-				clone.Parent = petMover
-			else
-				log("⚠️ Could not find RootPart for: " .. pet.Name)
+				frozenClone:SetPrimaryPartCFrame(root.CFrame)
 			end
 
-			-- Optional: hide original
-			-- pet.Parent = nil
+			-- Freeze passive visually by cloning effect holders (if any)
+			frozenClone.Parent = mover
 		end
 	end
 
-	if count == 0 then
-		log("❌ No MoonCats found.")
+	if frozenCount == 0 then
+		log("⚠️ No MoonCats found to freeze.")
 	else
-		log("✅ Done freezing " .. count .. " MoonCats.")
+		log("✅ Done freezing " .. frozenCount .. " MoonCats.")
 	end
 end
 
-freezeMoonCats()
+freezeMoonCatsProperly()
