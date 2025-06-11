@@ -1,4 +1,4 @@
--- ✅ Improved Pet Spawner GUI
+-- 🐾 Pet Spawner GUI with visibility fix, draggable, and large button
 -- Use this in Delta after uploading to GitHub:
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/PetSpawnerGUI.lua"))()
 
@@ -9,60 +9,35 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Destroy existing GUI if any
-local oldGui = PlayerGui:FindFirstChild("PetSpawnerUI")
-if oldGui then oldGui:Destroy() end
+-- Destroy existing UI if re-executed
+if PlayerGui:FindFirstChild("PetSpawnerUI") then
+    PlayerGui.PetSpawnerUI:Destroy()
+end
 
--- UI Setup
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PetSpawnerUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = PlayerGui
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 350, 0, 230)
-frame.Position = UDim2.new(0.3, 0, 0.3, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Size = UDim2.new(0, 320, 0, 220)
+frame.Position = UDim2.new(0.5, -160, 0.5, -110)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 frame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 10)
 uiCorner.Parent = frame
 
-local dragToggle = false
-local dragInput, dragStart, startPos
-
-frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragToggle = true
-        dragStart = input.Position
-        startPos = frame.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragToggle = false
-            end
-        end)
-    end
-end)\n
-frame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if input == dragInput and dragToggle then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
 local function createInput(name, posY)
     local label = Instance.new("TextLabel")
     label.Text = name .. ":"
     label.Position = UDim2.new(0, 10, 0, posY)
-    label.Size = UDim2.new(0, 90, 0, 25)
+    label.Size = UDim2.new(0, 80, 0, 30)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.new(1, 1, 1)
     label.Font = Enum.Font.SourceSans
@@ -71,8 +46,8 @@ local function createInput(name, posY)
 
     local input = Instance.new("TextBox")
     input.PlaceholderText = name
-    input.Position = UDim2.new(0, 110, 0, posY)
-    input.Size = UDim2.new(0, 220, 0, 25)
+    input.Position = UDim2.new(0, 100, 0, posY)
+    input.Size = UDim2.new(0, 200, 0, 30)
     input.Font = Enum.Font.SourceSans
     input.TextSize = 18
     input.TextColor3 = Color3.new(0, 0, 0)
@@ -83,15 +58,15 @@ local function createInput(name, posY)
 end
 
 local petInput = createInput("Pet Name", 10)
-local ageInput = createInput("Age", 50)
-local weightInput = createInput("Weight", 90)
+local ageInput = createInput("Age", 55)
+local weightInput = createInput("Weight", 100)
 
 local spawnBtn = Instance.new("TextButton")
-spawnBtn.Position = UDim2.new(0.5, -100, 0, 140)
-spawnBtn.Size = UDim2.new(0, 200, 0, 50)
-spawnBtn.Text = "📦 Spawn Pet"
+spawnBtn.Position = UDim2.new(0.5, -100, 0, 150)
+spawnBtn.Size = UDim2.new(0, 200, 0, 45)
+spawnBtn.Text = "SPAWN PET"
 spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 22
+spawnBtn.TextSize = 24
 spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 spawnBtn.Parent = frame
 
@@ -111,15 +86,22 @@ spawnBtn.MouseButton1Click:Connect(function()
     end
 
     if not template then
-        warn("❌ Pet not found: " .. petName)
+        warn("Pet not found in ReplicatedStorage: " .. petName)
         return
     end
 
     local clone = template:Clone()
-    clone.Name = petName .. " [" .. tostring(weight or 0) .. " KG] [Age " .. tostring(age or 0) .. "]"
     clone.Parent = LocalPlayer:WaitForChild("Backpack")
 
-    print("✅ Added to Backpack: " .. clone.Name)
+    -- Set attributes if they exist
+    if clone:FindFirstChild("Age") then
+        clone.Age.Value = age or 0
+    end
+    if clone:FindFirstChild("Weight") then
+        clone.Weight.Value = weight or 0
+    end
+
+    print("✅ Added " .. petName .. " to backpack with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
 end)
 
-print("✅ Pet Spawner GUI loaded!")
+print("✅ Pet Spawner GUI visible and functional")
