@@ -1,74 +1,66 @@
--- ✅ Freeze-Free Cat Model Viewer (Final GUI Fix)
+-- ✅ GUI-Based Raccoon Pet Spawner with Age/Weight
+-- Freeze-Free Pet Structure Viewer and Freezing Functionality
+
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
--- GUI Setup
+-- ✅ GUI Log Printer to Display Cat Structure
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FreezeSafeLogger"
+screenGui.Name = "LogPrinterGUI"
 screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 500, 0, 400)
-mainFrame.Position = UDim2.new(0, 20, 0, 20)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.Parent = screenGui
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 500, 0, 400)
+logBox.Position = UDim2.new(0, 20, 0, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = ""
+logBox.Parent = screenGui
 
-local uicorner = Instance.new("UICorner", mainFrame)
-uicorner.CornerRadius = UDim.new(0, 8)
-
--- Scrolling Area
-local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -10, 1, -10)
-scrollFrame.Position = UDim2.new(0, 5, 0, 5)
-scrollFrame.BackgroundTransparency = 1
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrollFrame.ScrollBarThickness = 8
-scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrollFrame.AutomaticSize = Enum.AutomaticSize.None
-scrollFrame.Parent = mainFrame
-
--- Log Text
-local logLabel = Instance.new("TextLabel")
-logLabel.Name = "Log"
-logLabel.Size = UDim2.new(1, -10, 0, 0)
-logLabel.Position = UDim2.new(0, 5, 0, 5)
-logLabel.BackgroundTransparency = 1
-logLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-logLabel.TextXAlignment = Enum.TextXAlignment.Left
-logLabel.TextYAlignment = Enum.TextYAlignment.Top
-logLabel.Font = Enum.Font.Code
-logLabel.TextSize = 14
-logLabel.TextWrapped = true
-logLabel.Text = ""
-logLabel.AutomaticSize = Enum.AutomaticSize.Y
-logLabel.Parent = scrollFrame
-
--- Logger Function
 local function log(text)
-	logLabel.Text = logLabel.Text .. text .. "\n"
+    logBox.Text = logBox.Text .. text .. "\n"
 end
 
--- Scan Cats
-local function scanCatModelsOnce()
-	local pets = workspace:FindFirstChild("PetsPhysical")
-	if not pets then return log("❌ PetsPhysical not found") end
+local function scanCatModelsOnceAndFreeze()
+    local pets = workspace:FindFirstChild("PetsPhysical")
+    if not pets then
+        log("❌ PetsPhysical not found in workspace")
+        return
+    end
 
-	local mover = pets:FindFirstChild("PetMover")
-	if not mover then return log("❌ PetMover not found") end
+    local mover = pets:FindFirstChild("PetMover")
+    if not mover then
+        log("❌ PetMover not found inside PetsPhysical")
+        return
+    end
 
-	for _, model in ipairs(mover:GetChildren()) do
-		if model:IsA("Model") and model.Name == "Cat" then
-			log("📦 Found Cat Model:")
-			for _, desc in ipairs(model:GetDescendants()) do
-				task.wait(0.01)
-				log(desc:GetFullName())
-			end
-		end
-	end
+    for _, model in ipairs(mover:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Cat" then
+            log("\n📦 Found Cat Model:")
+            for _, descendant in ipairs(model:GetDescendants()) do
+                task.wait(0.01)
+                log(descendant:GetFullName())
+
+                -- ✅ Freeze the cat's parts
+                if descendant:IsA("BasePart") then
+                    descendant.Anchored = true
+                end
+            end
+
+            -- ✅ Attempt to retain passive effects
+            if model:FindFirstChild("Humanoid") then
+                model.Humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            end
+        end
+    end
 end
 
-scanCatModelsOnce()
+scanCatModelsOnceAndFreeze()
