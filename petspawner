@@ -72,30 +72,33 @@ spawnBtn.MouseButton1Click:Connect(function()
 
     if not petName or petName == "" then return end
 
-    local petTool = nil
+    local foundTool = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and obj.Name == petName then
-            petTool = obj
+        if obj:IsA("Tool") and string.lower(obj.Name) == string.lower(petName) then
+            foundTool = obj
             break
         end
     end
 
-    if not petTool then
-        warn("Pet Tool not found in ReplicatedStorage: " .. petName)
+    if not foundTool then
+        warn("❌ Pet Tool not found in ReplicatedStorage: " .. petName)
         return
     end
 
-    local clone = petTool:Clone()
-    clone.Parent = LocalPlayer:WaitForChild("Backpack")
+    local cloned = foundTool:Clone()
+    cloned.Parent = LocalPlayer.Backpack
 
-    if clone:FindFirstChild("Age") then
-        clone.Age.Value = age
-    end
-    if clone:FindFirstChild("Weight") then
-        clone.Weight.Value = weight
+    local ageValue = cloned:FindFirstChild("Age")
+    if ageValue and ageValue:IsA("NumberValue") then
+        ageValue.Value = age
     end
 
-    print("✅ Added " .. petName .. " to inventory with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
+    local weightValue = cloned:FindFirstChild("Weight")
+    if weightValue and weightValue:IsA("NumberValue") then
+        weightValue.Value = weight
+    end
+
+    print("✅ Spawned " .. petName .. " with Age: " .. age .. " and Weight: " .. weight)
 end)
 
 print("✅ Pet Spawner GUI loaded")
