@@ -1,13 +1,61 @@
--- Make sure Delta has proper permissions to access ReplicatedStorage
-local petEvent = game:GetService("ReplicatedStorage"):WaitForChild("PetModule"):WaitForChild("SpawnPet")
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
 
--- Change "Raccoon" to the pet name you want to spawn
-local petName = "Raccoon"
+-- Remote Event
+local spawnEvent = ReplicatedStorage:WaitForChild("PetModule"):WaitForChild("SpawnPet")
 
--- Number of pets to spawn
-local count = 5
+-- Player
+local player = Players.LocalPlayer
 
-for i = 1, count do
-    petEvent:FireServer(petName)
-    wait(0.25) -- slight delay to avoid detection or server lag
-end
+-- Create GUI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "PetSpawnerGUI"
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 250, 0, 200)
+frame.Position = UDim2.new(0, 20, 0, 100)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
+
+-- Pet Name
+local petNameBox = Instance.new("TextBox", frame)
+petNameBox.PlaceholderText = "Pet Name (e.g. Raccoon)"
+petNameBox.Size = UDim2.new(1, -20, 0, 30)
+petNameBox.Position = UDim2.new(0, 10, 0, 10)
+petNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+petNameBox.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- Age
+local ageBox = Instance.new("TextBox", frame)
+ageBox.PlaceholderText = "Age (e.g. 2)"
+ageBox.Size = UDim2.new(1, -20, 0, 30)
+ageBox.Position = UDim2.new(0, 10, 0, 50)
+ageBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ageBox.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- Weight
+local weightBox = Instance.new("TextBox", frame)
+weightBox.PlaceholderText = "Weight (e.g. 5)"
+weightBox.Size = UDim2.new(1, -20, 0, 30)
+weightBox.Position = UDim2.new(0, 10, 0, 90)
+weightBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+weightBox.TextColor3 = Color3.fromRGB(255,255,255)
+
+-- Spawn Button
+local spawnButton = Instance.new("TextButton", frame)
+spawnButton.Text = "Spawn Pet"
+spawnButton.Size = UDim2.new(1, -20, 0, 40)
+spawnButton.Position = UDim2.new(0, 10, 0, 130)
+spawnButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
+spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- Function when button is clicked
+spawnButton.MouseButton1Click:Connect(function()
+    local petName = petNameBox.Text
+    local age = tonumber(ageBox.Text) or 0
+    local weight = tonumber(weightBox.Text) or 0
+
+    -- Try sending as 3 arguments (adjust if needed)
+    spawnEvent:FireServer(petName, age, weight)
+end)
