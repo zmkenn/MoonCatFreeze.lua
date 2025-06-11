@@ -1,118 +1,84 @@
--- 🐾 GUI Pet Spawner Script with Anti-Removal and Unique Age/Weight
--- Use this in Delta after uploading to your GitHub:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
+-- 📺 On-Screen Remote Logger GUI for Delta or Synapse
 
-repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
-
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
--- UI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PetSpawnerUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 280)
-frame.Position = UDim2.new(0.5, -160, 0.5, -140)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = screenGui
-
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 10)
-uiCorner.Parent = frame
-
-local function createInput(name, posY)
-    local label = Instance.new("TextLabel")
-    label.Text = name .. ":"
-    label.Position = UDim2.new(0, 10, 0, posY)
-    label.Size = UDim2.new(0, 80, 0, 25)
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
-    label.Parent = frame
-
-    local input = Instance.new("TextBox")
-    input.PlaceholderText = name
-    input.Position = UDim2.new(0, 100, 0, posY)
-    input.Size = UDim2.new(0, 200, 0, 25)
-    input.Font = Enum.Font.SourceSans
-    input.TextSize = 18
-    input.TextColor3 = Color3.new(0, 0, 0)
-    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
-    input.Parent = frame
-
-    return input
+-- Check executor support
+if not getrawmetatable or not getnamecallmethod then
+    return warn("❌ Your executor doesn't support required functions.")
 end
 
-local petInput = createInput("Pet Name", 10)
-local ageInput = createInput("Age", 45)
-local weightInput = createInput("Weight", 80)
+-- Setup GUI
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local spawnBtn = Instance.new("TextButton")
-spawnBtn.Position = UDim2.new(0.5, -100, 0, 130)
-spawnBtn.Size = UDim2.new(0, 200, 0, 50)
-spawnBtn.Text = "SPAWN PET"
-spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 24
-spawnBtn.TextColor3 = Color3.new(1, 1, 1)
-spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-spawnBtn.Parent = frame
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "RemoteLoggerGUI"
+screenGui.ResetOnSpawn = false
 
-spawnBtn.MouseButton1Click:Connect(function()
-    local petName = petInput.Text
-    local age = tonumber(ageInput.Text)
-    local weight = tonumber(weightInput.Text)
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 500, 0, 300)
+frame.Position = UDim2.new(0.5, -250, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
 
-    if not petName or petName == "" then
-        warn("❌ Please enter a pet name.")
-        return
-    end
+local uiCorner = Instance.new("UICorner", frame)
+uiCorner.CornerRadius = UDim.new(0, 8)
 
-    if not age then age = math.random(1, 999) end
-    if not weight then weight = math.random(1, 999) + math.random() end
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "📡 Remote Logger"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 22
 
-    local foundTool = nil
-    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and string.lower(obj.Name) == string.lower(petName) then
-            foundTool = obj
-            break
+local scrolling = Instance.new("ScrollingFrame", frame)
+scrolling.Position = UDim2.new(0, 0, 0, 30)
+scrolling.Size = UDim2.new(1, 0, 1, -30)
+scrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrolling.ScrollBarThickness = 6
+scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrolling.BackgroundTransparency = 0.2
+scrolling.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+
+local layout = Instance.new("UIListLayout", scrolling)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 4)
+
+-- Logging function
+local function logToGUI(text)
+    local label = Instance.new("TextLabel", scrolling)
+    label.Text = text
+    label.Size = UDim2.new(1, -10, 0, 24)
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.TextColor3 = Color3.fromRGB(200, 255, 200)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Code
+    label.TextSize = 16
+end
+
+-- Remote Hook
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "FireServer" or method == "InvokeServer" then
+        local args = {...}
+        local info = "📤 " .. method .. " → " .. self:GetFullName()
+        if #args > 0 then
+            local success, result = pcall(function()
+                return game:GetService("HttpService"):JSONEncode(args)
+            end)
+            if success then
+                info = info .. "\n   Args: " .. result
+            end
         end
+        logToGUI(info)
     end
-
-    if not foundTool then
-        warn("❌ Pet Tool not found in ReplicatedStorage: " .. petName)
-        return
-    end
-
-    local cloned = foundTool:Clone()
-    cloned.Name = petName .. " [" .. string.format("%.2f", weight) .. " KG] [Age " .. age .. "]"
-    cloned.Parent = LocalPlayer.Backpack
-
-    -- Anti-removal logic
-    cloned.AncestryChanged:Connect(function()
-        if not cloned:IsDescendantOf(LocalPlayer.Backpack) then
-            wait(0.1)
-            cloned.Parent = LocalPlayer.Backpack
-        end
-    end)
-
-    -- Set custom attributes
-    local ageValue = cloned:FindFirstChild("Age") or Instance.new("NumberValue", cloned)
-    ageValue.Name = "Age"
-    ageValue.Value = age
-
-    local weightValue = cloned:FindFirstChild("Weight") or Instance.new("NumberValue", cloned)
-    weightValue.Name = "Weight"
-    weightValue.Value = weight
-
-    print("✅ Spawned " .. cloned.Name)
+    return old(self, ...)
 end)
 
-print("✅ Pet Spawner GUI with anti-removal and unique properties loaded")
+setreadonly(mt, true)
+
+logToGUI("✅ Remote Logger GUI started")
