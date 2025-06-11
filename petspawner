@@ -1,29 +1,40 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
+local RunService = game:GetService("RunService")
+local PetMover = workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:FindFirstChild("PetMover")
 
-local function tagNearbyModels()
-    for _, model in ipairs(workspace:GetDescendants()) do
-        if model:IsA("Model") and model:FindFirstChildWhichIsA("Humanoid") == nil then
-            local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-            if primary and (primary.Position - character.HumanoidRootPart.Position).Magnitude < 50 then
-                if not model:FindFirstChild("TagBillboard") then
-                    local billboard = Instance.new("BillboardGui", model)
-                    billboard.Name = "TagBillboard"
-                    billboard.Size = UDim2.new(0, 100, 0, 40)
-                    billboard.AlwaysOnTop = true
-                    billboard.Adornee = primary
+if not PetMover then
+    warn("PetMover not found")
+    return
+end
 
-                    local label = Instance.new("TextLabel", billboard)
-                    label.Size = UDim2.new(1, 0, 1, 0)
-                    label.Text = "📍 " .. model.Name
-                    label.TextColor3 = Color3.new(1, 1, 1)
-                    label.BackgroundTransparency = 1
-                    label.TextStrokeTransparency = 0.5
-                end
+for _, cat in pairs(PetMover:GetChildren()) do
+    if cat.Name == "Cat" and cat:FindFirstChild("RootPart") then
+        local root = cat.RootPart
+        local pos = root.Position
+
+        -- Lock position every frame
+        RunService.Heartbeat:Connect(function()
+            if root and root.Parent then
+                root.Anchored = true
+                root.CFrame = CFrame.new(pos)
+            end
+        end)
+
+        -- Stop animation if Animator exists
+        local animController = cat:FindFirstChild("AnimationController")
+        if animController then
+            local animator = animController:FindFirstChild("Animator")
+            if animator then
+                animator:Destroy()
+            end
+        end
+
+        -- Disable all Motor6Ds
+        for _, motor in pairs(cat:GetDescendants()) do
+            if motor:IsA("Motor6D") then
+                pcall(function()
+                    motor.Enabled = false
+                end)
             end
         end
     end
 end
-
-tagNearbyModels()
