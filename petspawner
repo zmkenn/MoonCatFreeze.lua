@@ -1,84 +1,86 @@
--- 📺 On-Screen Remote Logger GUI for Delta or Synapse
+-- 🧊 Lightweight On-Screen Remote Logger
 
 -- Check executor support
 if not getrawmetatable or not getnamecallmethod then
     return warn("❌ Your executor doesn't support required functions.")
 end
 
--- Setup GUI
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "RemoteLoggerGUI"
-screenGui.ResetOnSpawn = false
+-- GUI Setup
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "RemoteLoggerLite"
+gui.ResetOnSpawn = false
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 500, 0, 300)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 500, 0, 240)
 frame.Position = UDim2.new(0.5, -250, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 
 local uiCorner = Instance.new("UICorner", frame)
-uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.CornerRadius = UDim.new(0, 6)
 
 local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "📡 Remote Logger"
+title.Size = UDim2.new(1, 0, 0, 28)
+title.Text = "📡 Remote Logger (Lite)"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.SourceSansBold
-title.TextSize = 22
+title.TextSize = 20
 
-local scrolling = Instance.new("ScrollingFrame", frame)
-scrolling.Position = UDim2.new(0, 0, 0, 30)
-scrolling.Size = UDim2.new(1, 0, 1, -30)
-scrolling.CanvasSize = UDim2.new(0, 0, 0, 0)
-scrolling.ScrollBarThickness = 6
-scrolling.AutomaticCanvasSize = Enum.AutomaticSize.Y
-scrolling.BackgroundTransparency = 0.2
-scrolling.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+local logBox = Instance.new("TextBox", frame)
+logBox.Position = UDim2.new(0, 5, 0, 30)
+logBox.Size = UDim2.new(1, -10, 1, -35)
+logBox.MultiLine = true
+logBox.TextWrapped = true
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+logBox.TextColor3 = Color3.fromRGB(200, 255, 200)
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.ClearTextOnFocus = false
+logBox.TextEditable = false
+logBox.Text = ""
 
-local layout = Instance.new("UIListLayout", scrolling)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 4)
+local MAX_LINES = 50
+local logs = {}
 
--- Logging function
-local function logToGUI(text)
-    local label = Instance.new("TextLabel", scrolling)
-    label.Text = text
-    label.Size = UDim2.new(1, -10, 0, 24)
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.TextColor3 = Color3.fromRGB(200, 255, 200)
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.Code
-    label.TextSize = 16
+local function addLog(text)
+    table.insert(logs, 1, text)
+    if #logs > MAX_LINES then
+        table.remove(logs)
+    end
+    logBox.Text = table.concat(logs, "\n")
 end
 
--- Remote Hook
+-- Hook Remotes
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
-    if method == "FireServer" or method == "InvokeServer" then
+    if (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
         local args = {...}
-        local info = "📤 " .. method .. " → " .. self:GetFullName()
-        if #args > 0 then
-            local success, result = pcall(function()
-                return game:GetService("HttpService"):JSONEncode(args)
-            end)
-            if success then
-                info = info .. "\n   Args: " .. result
-            end
+        local path = self:GetFullName()
+        local success, encoded = pcall(function()
+            return HttpService:JSONEncode(args)
+        end)
+        if success then
+            addLog("[" .. method .. "] " .. path .. "\nArgs: " .. encoded)
+        else
+            addLog("[" .. method .. "] " .. path .. "\nArgs: (encoding failed)")
         end
-        logToGUI(info)
     end
     return old(self, ...)
 end)
 
 setreadonly(mt, true)
 
-logToGUI("✅ Remote Logger GUI started")
+addLog("✅ Remote Logger Lite started")
