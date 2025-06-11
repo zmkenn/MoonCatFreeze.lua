@@ -1,13 +1,12 @@
--- 🐾 Pet Spawner Script (Anti-Removal Bypass)
--- Load this via Delta: loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
+-- 🐾 GUI Pet Spawner Script with Anti-Removal Logic
+-- Use this in Delta after uploading to your GitHub:
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local Backpack = LocalPlayer:WaitForChild("Backpack")
-local StarterGui = game:GetService("StarterGui")
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui")
@@ -16,8 +15,8 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 220)
-frame.Position = UDim2.new(0.5, -160, 0.5, -110)
+frame.Size = UDim2.new(0, 320, 0, 240)
+frame.Position = UDim2.new(0.5, -160, 0.5, -120)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Active = true
@@ -66,16 +65,6 @@ spawnBtn.TextColor3 = Color3.new(1, 1, 1)
 spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 spawnBtn.Parent = frame
 
--- Anti-Remove Function
-local function protectTool(tool)
-    tool.AncestryChanged:Connect(function(_, parent)
-        if not parent then
-            warn("Tool was removed, restoring...")
-            tool.Parent = Backpack
-        end
-    end)
-end
-
 spawnBtn.MouseButton1Click:Connect(function()
     local petName = petInput.Text
     local age = tonumber(ageInput.Text) or 1
@@ -97,10 +86,15 @@ spawnBtn.MouseButton1Click:Connect(function()
     end
 
     local cloned = foundTool:Clone()
-    cloned.Parent = Backpack
+    cloned.Parent = LocalPlayer.Backpack
 
-    -- Anti-Remove Hook
-    protectTool(cloned)
+    -- Anti-removal logic
+    cloned.AncestryChanged:Connect(function()
+        if not cloned:IsDescendantOf(LocalPlayer.Backpack) then
+            wait(0.1)
+            cloned.Parent = LocalPlayer.Backpack
+        end
+    end)
 
     local ageValue = cloned:FindFirstChild("Age")
     if ageValue and ageValue:IsA("NumberValue") then
@@ -115,4 +109,4 @@ spawnBtn.MouseButton1Click:Connect(function()
     print("✅ Spawned " .. petName .. " with Age: " .. age .. " and Weight: " .. weight)
 end)
 
-print("✅ Pet Spawner GUI with Anti-Removal loaded")
+print("✅ Pet Spawner GUI with anti-removal loaded")
