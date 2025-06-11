@@ -1,82 +1,36 @@
--- ✅ GUI-Based Raccoon Pet Spawner with Age/Weight
--- This will only work if the game allows remote calls for pet spawning
-
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
 
--- ✅ Manually set the RemoteEvent path if automatic detection fails
-local petRemote = ReplicatedStorage:FindFirstChild("GivePet") or ReplicatedStorage:WaitForChild("GivePet")
+local function hookRemote(obj)
+    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+        local path = obj:GetFullName()
+        print("📡 Hooked:", path)
 
-if not petRemote or not petRemote:IsA("RemoteEvent") then
-    warn("❌ No valid pet spawn RemoteEvent found.")
-    return
+        if obj:IsA("RemoteEvent") then
+            local oldFireServer = obj.FireServer
+            obj.FireServer = function(self, ...)
+                print("📤 RemoteEvent Fired:", path)
+                local args = {...}
+                for i, v in ipairs(args) do
+                    print("  Arg", i, ":", v)
+                end
+                return oldFireServer(self, ...)
+            end
+        elseif obj:IsA("RemoteFunction") then
+            local oldInvokeServer = obj.InvokeServer
+            obj.InvokeServer = function(self, ...)
+                print("📤 RemoteFunction Invoked:", path)
+                local args = {...}
+                for i, v in ipairs(args) do
+                    print("  Arg", i, ":", v)
+                end
+                return oldInvokeServer(self, ...)
+            end
+        end
+    end
 end
 
--- ✅ GUI Creation
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "PetSpawnerGUI"
-screenGui.ResetOnSpawn = false
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+    hookRemote(v)
+end
 
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 300, 0, 200)
-frame.Position = UDim2.new(0.5, -150, 0.5, -100)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.Draggable = true
-frame.Active = true
-frame.Selectable = true
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-title.Text = "🐾 Pet Spawner"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-
-title.Position = UDim2.new(0, 0, 0, 0)
-
-local ageBox = Instance.new("TextBox", frame)
-ageBox.PlaceholderText = "Enter Age"
-ageBox.Position = UDim2.new(0, 10, 0, 50)
-ageBox.Size = UDim2.new(1, -20, 0, 30)
-ageBox.Text = ""
-
-local weightBox = Instance.new("TextBox", frame)
-weightBox.PlaceholderText = "Enter Weight (KG, ex: 2.55)"
-weightBox.Position = UDim2.new(0, 10, 0, 90)
-weightBox.Size = UDim2.new(1, -20, 0, 30)
-weightBox.Text = ""
-
-local spawnButton = Instance.new("TextButton", frame)
-spawnButton.Text = "Spawn Raccoon"
-spawnButton.Position = UDim2.new(0, 10, 0, 140)
-spawnButton.Size = UDim2.new(1, -20, 0, 40)
-spawnButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-spawnButton.Font = Enum.Font.GothamBold
-spawnButton.TextSize = 18
-
-spawnButton.MouseButton1Click:Connect(function()
-    local age = tonumber(ageBox.Text)
-    local weight = tonumber(weightBox.Text)
-    if not age or not weight then
-        warn("❌ Invalid input. Age and weight must be numbers.")
-        return
-    end
-
-    -- 🔁 Try standard structure for GivePet remote
-    local success, err = pcall(function()
-        petRemote:FireServer({
-            PetType = "Raccoon",
-            Age = age,
-            Weight = weight
-        })
-    end)
-
-    if not success then
-        warn("❌ Failed to spawn pet:", err)
-    else
-        print("✅ Spawned Raccoon with age:", age, "and weight:", weight)
-    end
-end)
+ReplicatedStorage.DescendantAdded:Connect(hookRemote)
