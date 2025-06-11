@@ -1,5 +1,5 @@
--- 🐾 Pet Spawner GUI with visibility fix, draggable, and large button
--- Use this in Delta after uploading to GitHub:
+-- ✅ GUI Pet Spawner Script for Grow a Garden (Updated for visibility, dragging, and big button)
+-- Use this in Delta after uploading to your GitHub:
 -- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/PetSpawnerGUI.lua"))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
@@ -7,31 +7,25 @@ repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Player
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-
--- Destroy existing UI if re-executed
-if PlayerGui:FindFirstChild("PetSpawnerUI") then
-    PlayerGui.PetSpawnerUI:Destroy()
-end
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PetSpawnerUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = PlayerGui
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 220)
-frame.Position = UDim2.new(0.5, -160, 0.5, -110)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Size = UDim2.new(0, 350, 0, 240)
+frame.Position = UDim2.new(0.5, -175, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
-local uiCorner = Instance.new("UICorner")
+local uiCorner = Instance.new("UICorner", frame)
 uiCorner.CornerRadius = UDim.new(0, 10)
-uiCorner.Parent = frame
 
 local function createInput(name, posY)
     local label = Instance.new("TextLabel")
@@ -40,18 +34,19 @@ local function createInput(name, posY)
     label.Size = UDim2.new(0, 80, 0, 30)
     label.BackgroundTransparency = 1
     label.TextColor3 = Color3.new(1, 1, 1)
-    label.Font = Enum.Font.SourceSans
-    label.TextSize = 18
+    label.Font = Enum.Font.SourceSansBold
+    label.TextSize = 20
     label.Parent = frame
 
     local input = Instance.new("TextBox")
     input.PlaceholderText = name
     input.Position = UDim2.new(0, 100, 0, posY)
-    input.Size = UDim2.new(0, 200, 0, 30)
+    input.Size = UDim2.new(0, 230, 0, 30)
     input.Font = Enum.Font.SourceSans
-    input.TextSize = 18
+    input.TextSize = 20
     input.TextColor3 = Color3.new(0, 0, 0)
-    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    input.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    input.ClearTextOnFocus = false
     input.Parent = frame
 
     return input
@@ -63,12 +58,16 @@ local weightInput = createInput("Weight", 100)
 
 local spawnBtn = Instance.new("TextButton")
 spawnBtn.Position = UDim2.new(0.5, -100, 0, 150)
-spawnBtn.Size = UDim2.new(0, 200, 0, 45)
+spawnBtn.Size = UDim2.new(0, 200, 0, 60)
 spawnBtn.Text = "SPAWN PET"
 spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 24
-spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+spawnBtn.TextSize = 26
+spawnBtn.TextColor3 = Color3.new(1, 1, 1)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
 spawnBtn.Parent = frame
+
+local corner = Instance.new("UICorner", spawnBtn)
+corner.CornerRadius = UDim.new(0, 6)
 
 spawnBtn.MouseButton1Click:Connect(function()
     local petName = petInput.Text
@@ -79,7 +78,7 @@ spawnBtn.MouseButton1Click:Connect(function()
 
     local template = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and obj.Name == petName then
+        if (obj:IsA("Tool") or obj:IsA("Model")) and obj.Name == petName then
             template = obj
             break
         end
@@ -91,9 +90,17 @@ spawnBtn.MouseButton1Click:Connect(function()
     end
 
     local clone = template:Clone()
-    clone.Parent = LocalPlayer:WaitForChild("Backpack")
 
-    -- Set attributes if they exist
+    if clone:IsA("Tool") then
+        clone.Parent = LocalPlayer.Backpack
+    else
+        clone.Parent = workspace
+        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and clone.PrimaryPart then
+            clone:SetPrimaryPartCFrame(hrp.CFrame * CFrame.new(0, 5, 0))
+        end
+    end
+
     if clone:FindFirstChild("Age") then
         clone.Age.Value = age or 0
     end
@@ -101,7 +108,7 @@ spawnBtn.MouseButton1Click:Connect(function()
         clone.Weight.Value = weight or 0
     end
 
-    print("✅ Added " .. petName .. " to backpack with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
+    print("✅ Spawned " .. petName .. " with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
 end)
 
-print("✅ Pet Spawner GUI visible and functional")
+print("✅ Pet Spawner GUI loaded")
