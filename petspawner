@@ -1,25 +1,28 @@
 local RunService = game:GetService("RunService")
-local pet = workspace:WaitForChild("Cat")
+local petsFolder = workspace:FindFirstChild("Pets") or workspace
 
--- Anchor ALL parts in the pet
-for _, part in pairs(pet:GetDescendants()) do
-	if part:IsA("BasePart") then
-		part.Anchored = true
-	end
+local function disableMovement(model)
+    for _, inst in ipairs(model:GetDescendants()) do
+        if inst:IsA("AlignPosition") or inst:IsA("AlignOrientation") then
+            inst:Destroy()
+        elseif inst:IsA("Attachment") then
+            -- Remove attachments used by those constraints
+            inst:Destroy()
+        end
+    end
 end
 
--- Stop pet scripts (optional, safe toggle)
-for _, obj in pairs(pet:GetDescendants()) do
-	if obj:IsA("Script") or obj:IsA("LocalScript") then
-		obj.Disabled = true
-	end
+-- Freeze existing pets
+for _, pet in ipairs(petsFolder:GetDescendants()) do
+    if pet:IsA("Model") and pet.Name == "Cat" then
+        disableMovement(pet)
+    end
 end
 
--- Lock the pet in position
-local freezePosition = pet:GetPrimaryPartCFrame()
-
-RunService.Heartbeat:Connect(function()
-	if pet and pet.PrimaryPart then
-		pet:SetPrimaryPartCFrame(freezePosition)
-	end
+-- Track new pets spawning
+petsFolder.DescendantAdded:Connect(function(inst)
+    local model = inst:FindFirstAncestorWhichIsA("Model")
+    if model and model.Name == "Cat" then
+        disableMovement(model)
+    end
 end)
