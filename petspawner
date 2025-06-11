@@ -1,13 +1,11 @@
--- 🐾 Updated GUI Pet Spawner Script for Grow a Garden (with visual inventory integration)
--- Use this in Delta after uploading to GitHub:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner"))()
+-- 🐾 Updated Pet Spawner Script: Now adds visual pet to inventory (Backpack)
+-- Use with: loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner.lua"))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local Backpack = LocalPlayer:WaitForChild("Backpack")
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -19,7 +17,8 @@ frame.Position = UDim2.new(0.5, -150, 0.5, -100)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+local uiCorner = Instance.new("UICorner", frame)
+uiCorner.CornerRadius = UDim.new(0, 8)
 
 local function createInput(name, posY)
     local label = Instance.new("TextLabel", frame)
@@ -64,24 +63,30 @@ spawnBtn.MouseButton1Click:Connect(function()
 
     local template = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and obj.Name:match(petName) then
+        if obj:IsA("Tool") and obj.Name == petName then
             template = obj
             break
         end
     end
 
     if not template then
-        warn("Pet Tool not found: " .. petName)
+        warn("Pet tool not found: " .. petName)
         return
     end
 
-    local petTool = template:Clone()
-    petTool.Parent = Backpack
+    local clone = template:Clone()
+    clone.Name = petName .. string.format(" [%.2f KG] [Age %d]", weight or 0, age or 0)
+    clone.Parent = LocalPlayer.Backpack
 
-    -- Fake setting of Age/Weight as string in tool name if properties are missing
-    petTool.Name = string.format("%s [%.2f KG] [Age %d]", petName, weight or 0, age or 0)
+    -- Set attributes if they exist
+    if clone:FindFirstChild("Age") then
+        clone.Age.Value = age or 0
+    end
+    if clone:FindFirstChild("Weight") then
+        clone.Weight.Value = weight or 0
+    end
 
-    print("✅ Tool added to inventory: " .. petTool.Name)
+    print("✅ Spawned pet in inventory: " .. clone.Name)
 end)
 
-print("✅ Pet Spawner GUI (Inventory Tool Mode) Loaded")
+print("✅ Pet Spawner GUI loaded")
