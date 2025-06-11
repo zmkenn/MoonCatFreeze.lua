@@ -1,28 +1,63 @@
 local RunService = game:GetService("RunService")
-local petsFolder = workspace:FindFirstChild("Pets") or workspace
 
-local function disableMovement(model)
-    for _, inst in ipairs(model:GetDescendants()) do
-        if inst:IsA("AlignPosition") or inst:IsA("AlignOrientation") then
-            inst:Destroy()
-        elseif inst:IsA("Attachment") then
-            -- Remove attachments used by those constraints
-            inst:Destroy()
-        end
-    end
+-- Store frozen pet positions
+local frozenPetPositions = {}
+
+-- Freezer helper
+local function freezePart(part)
+	local cf = part.CFrame
+	RunService.Heartbeat:Connect(function()
+		if part and part.Parent then
+			part.CFrame = cf
+			part.Velocity = Vector3.zero
+			part.RotVelocity = Vector3.zero
+		end
+	end)
 end
 
--- Freeze existing pets
-for _, pet in ipairs(petsFolder:GetDescendants()) do
-    if pet:IsA("Model") and pet.Name == "Cat" then
-        disableMovement(pet)
-    end
+-- Freeze existing Cats and Zones
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("Model") and obj.Name == "Cat" then
+		local root = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
+		if root then
+			freezePart(root)
+			table.insert(frozenPetPositions, root.Position)
+		end
+	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
+		freezePart(obj)
+	end
 end
 
--- Track new pets spawning
-petsFolder.DescendantAdded:Connect(function(inst)
-    local model = inst:FindFirstAncestorWhichIsA("Model")
-    if model and model.Name == "Cat" then
-        disableMovement(model)
-    end
+-- Watch for new pets or zones
+workspace.DescendantAdded:Connect(function(child)
+	task.wait(0.2)
+	if child:IsA("Model") and child.Name == "Cat" then
+		local root = child.PrimaryPart or child:FindFirstChild("HumanoidRootPart") or child:FindFirstChildWhichIsA("BasePart")
+		if root then
+			freezePart(root)
+			table.insert(frozenPetPositions, root.Position)
+		end
+	elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
+		freezePart(child)
+	end
+end)
+
+-- Teleport SpottedEffect to nearest frozen pet
+workspace.ChildAdded:Connect(function(obj)
+	if obj:IsA("BasePart") and obj.Name == "SpottedEffect" then
+		task.wait() -- Let it initialize
+		if #frozenPetPositions > 0 then
+			-- Find closest frozen position
+			local closest = frozenPetPositions[1]
+			local minDist = (obj.Position - closest).Magnitude
+			for _, pos in pairs(frozenPetPositions) do
+				local dist = (obj.Position - pos).Magnitude
+				if dist < minDist then
+					minDist = dist
+					closest = pos
+				end
+			end
+			obj.Position = closest
+		end
+	end
 end)
