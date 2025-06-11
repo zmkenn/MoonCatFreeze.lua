@@ -1,15 +1,11 @@
 local RunService = game:GetService("RunService")
 
-local frozenPetPositions = {}
-local targetPosition = Vector3.new(19.56, 3.11, 88.19)
+-- Set this to your tree position
+local treePosition = Vector3.new(19.56, 3.11, 88.19)
 
-local function freezePart(part)
-	-- Capture the CFrame **at the time freezePart is called**
-	local cf = part.CFrame
-	-- Print for debugging
-	print("Freezing part:", part.Name, "at", cf.Position)
-	
-	-- Connect a Heartbeat event to keep resetting position and zero velocity
+-- Helper: freeze part at tree position
+local function freezePartAtPosition(part, position)
+	local cf = CFrame.new(position)
 	RunService.Heartbeat:Connect(function()
 		if part and part.Parent then
 			part.CFrame = cf
@@ -19,59 +15,62 @@ local function freezePart(part)
 	end)
 end
 
-local function freezeAndMoveCat(catModel)
+-- Move and freeze Moon Cat and its Zone parts
+local function moveAndFreezePet(catModel)
 	local root = catModel.PrimaryPart or catModel:FindFirstChild("HumanoidRootPart") or catModel:FindFirstChildWhichIsA("BasePart")
 	if root then
-		root.CFrame = CFrame.new(targetPosition)
-		freezePart(root)
-		table.insert(frozenPetPositions, root.Position)
-		print("Moved and froze cat:", catModel.Name)
-	else
-		print("No root part found for cat:", catModel.Name)
+		root.CFrame = CFrame.new(treePosition)
+		freezePartAtPosition(root, treePosition)
+	end
+	
+	-- Move and freeze PetMover.Zone parts inside this catModel or nearby
+	for _, zone in pairs(catModel:GetChildren()) do
+		if zone:IsA("BasePart") and zone.Name == "Zone" then
+			zone.CFrame = CFrame.new(treePosition)
+			freezePartAtPosition(zone, treePosition)
+		end
 	end
 end
 
-local function freezeAndMoveZone(zonePart)
-	zonePart.CFrame = CFrame.new(targetPosition)
-	freezePart(zonePart)
-	print("Moved and froze zone:", zonePart.Name)
+-- Move and freeze standalone PetMover.Zone parts (not inside cats)
+local function moveAndFreezeStandaloneZones()
+	for _, zone in pairs(workspace:GetDescendants()) do
+		if zone:IsA("BasePart") and zone.Name == "Zone" and zone.Parent and zone.Parent.Name == "PetMover" then
+			zone.CFrame = CFrame.new(treePosition)
+			freezePartAtPosition(zone, treePosition)
+		end
+	end
 end
 
--- Freeze and move existing pets and zones
+-- Move passive visual effects like SpottedEffect near the tree
+local function movePassiveEffects()
+	for _, effect in pairs(workspace:GetChildren()) do
+		if effect:IsA("BasePart") and effect.Name == "SpottedEffect" then
+			effect.CFrame = CFrame.new(treePosition + Vector3.new(0, 1.5, 0)) -- slightly above tree pos
+			freezePartAtPosition(effect, treePosition + Vector3.new(0, 1.5, 0))
+		end
+	end
+end
+
+-- Initial move + freeze for existing cats, zones, and effects
 for _, obj in pairs(workspace:GetDescendants()) do
 	if obj:IsA("Model") and obj.Name == "Cat" then
-		freezeAndMoveCat(obj)
-	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
-		freezeAndMoveZone(obj)
+		moveAndFreezePet(obj)
 	end
 end
+moveAndFreezeStandaloneZones()
+movePassiveEffects()
 
--- Watch for new pets or zones and freeze them at target
+-- Keep watching for new pets, zones, or effects added dynamically
 workspace.DescendantAdded:Connect(function(child)
-	task.wait(0.2)
+	task.wait(0.2) -- allow it to initialize
 	if child:IsA("Model") and child.Name == "Cat" then
-		freezeAndMoveCat(child)
+		moveAndFreezePet(child)
 	elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
-		freezeAndMoveZone(child)
-	end
-end)
-
--- Teleport SpottedEffect passives to nearest frozen pet
-workspace.ChildAdded:Connect(function(obj)
-	if obj:IsA("BasePart") and obj.Name == "SpottedEffect" then
-		task.wait()
-		if #frozenPetPositions > 0 then
-			local closest = frozenPetPositions[1]
-			local minDist = (obj.Position - closest).Magnitude
-			for _, pos in pairs(frozenPetPositions) do
-				local dist = (obj.Position - pos).Magnitude
-				if dist < minDist then
-					minDist = dist
-					closest = pos
-				end
-			end
-			obj.Position = closest
-			print("Moved SpottedEffect to:", closest)
-		end
+		child.CFrame = CFrame.new(treePosition)
+		freezePartAtPosition(child, treePosition)
+	elseif child:IsA("BasePart") and child.Name == "SpottedEffect" then
+		child.CFrame = CFrame.new(treePosition + Vector3.new(0, 1.5, 0))
+		freezePartAtPosition(child, treePosition + Vector3.new(0, 1.5, 0))
 	end
 end)
