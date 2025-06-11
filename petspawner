@@ -86,7 +86,7 @@ spawnBtn.MouseButton1Click:Connect(function()
     end
 
     local cloned = foundTool:Clone()
-    cloned.Parent = LocalPlayer.Backpack
+    cloned.Parent = LocalPlayer.Character or LocalPlayer.Backpack
 
     local ageValue = cloned:FindFirstChild("Age")
     if ageValue and ageValue:IsA("NumberValue") then
