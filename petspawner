@@ -1,8 +1,86 @@
-for _,v in pairs(getgc(true)) do
-    if typeof(v) == "function" and islclosure(v) and debug.getinfo(v).name == "FireServer" then
-        hookfunction(v, function(...)
-            print("📤 Remote Fired:", ...)
-            return v(...)
-        end)
-    end
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- 🌐 Try to find any RemoteEvent related to pets
+local petRemote = ReplicatedStorage:FindFirstChild("GivePet") or ReplicatedStorage:FindFirstChild("SpawnPet")
+
+if not petRemote or not petRemote:IsA("RemoteEvent") then
+    warn("❌ No usable remote found (GivePet or SpawnPet).")
+    return
 end
+
+-- GUI setup
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "PetSpawnerGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 230)
+frame.Position = UDim2.new(0.5, -150, 0.5, -115)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.Active = true
+frame.Draggable = true
+
+local function createLabel(text, y)
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Size = UDim2.new(1, -20, 0, 25)
+    lbl.Position = UDim2.new(0, 10, 0, y)
+    lbl.Text = text
+    lbl.TextColor3 = Color3.new(1, 1, 1)
+    lbl.BackgroundTransparency = 1
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    return lbl
+end
+
+local function createBox(placeholder, y)
+    local box = Instance.new("TextBox", frame)
+    box.PlaceholderText = placeholder
+    box.Position = UDim2.new(0, 10, 0, y)
+    box.Size = UDim2.new(1, -20, 0, 25)
+    box.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    box.TextColor3 = Color3.new(1, 1, 1)
+    return box
+end
+
+createLabel("Pet Name (e.g. Raccoon)", 10)
+local petBox = createBox("Raccoon", 35)
+
+createLabel("Age (number)", 65)
+local ageBox = createBox("1", 90)
+
+createLabel("Weight (number, e.g. 2.55)", 120)
+local weightBox = createBox("1.25", 145)
+
+local btn = Instance.new("TextButton", frame)
+btn.Position = UDim2.new(0, 10, 0, 180)
+btn.Size = UDim2.new(1, -20, 0, 40)
+btn.Text = "🐾 Spawn Pet"
+btn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.Font = Enum.Font.GothamBold
+btn.TextSize = 18
+
+btn.MouseButton1Click:Connect(function()
+    local name = petBox.Text
+    local age = tonumber(ageBox.Text)
+    local weight = tonumber(weightBox.Text)
+
+    if not name or not age or not weight then
+        warn("❌ Invalid input.")
+        return
+    end
+
+    local success, err = pcall(function()
+        petRemote:FireServer({
+            PetType = name,
+            Age = age,
+            Weight = weight
+        })
+    end)
+
+    if not success then
+        warn("❌ Failed to fire remote:", err)
+    else
+        print("✅ Spawned pet:", name, "Age:", age, "KG:", weight)
+    end
+end)
