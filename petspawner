@@ -1,86 +1,81 @@
--- 🧊 Lightweight On-Screen Remote Logger
-
--- Check executor support
-if not getrawmetatable or not getnamecallmethod then
-    return warn("❌ Your executor doesn't support required functions.")
-end
+-- ✅ GUI-Based Raccoon Pet Spawner with Age/Weight
+-- This will only work if the game allows remote calls for pet spawning
 
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
--- GUI Setup
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "RemoteLoggerLite"
-gui.ResetOnSpawn = false
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 500, 0, 240)
-frame.Position = UDim2.new(0.5, -250, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-
-local uiCorner = Instance.new("UICorner", frame)
-uiCorner.CornerRadius = UDim.new(0, 6)
-
-local title = Instance.new("TextLabel", frame)
-title.Size = UDim2.new(1, 0, 0, 28)
-title.Text = "📡 Remote Logger (Lite)"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
-
-local logBox = Instance.new("TextBox", frame)
-logBox.Position = UDim2.new(0, 5, 0, 30)
-logBox.Size = UDim2.new(1, -10, 1, -35)
-logBox.MultiLine = true
-logBox.TextWrapped = true
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-logBox.TextColor3 = Color3.fromRGB(200, 255, 200)
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
-logBox.ClearTextOnFocus = false
-logBox.TextEditable = false
-logBox.Text = ""
-
-local MAX_LINES = 50
-local logs = {}
-
-local function addLog(text)
-    table.insert(logs, 1, text)
-    if #logs > MAX_LINES then
-        table.remove(logs)
+-- ✅ Safe remote detection
+local petRemote = nil
+for _, obj in pairs(ReplicatedStorage:GetDescendants()) do
+    if obj:IsA("RemoteEvent") and obj.Name:lower():find("spawn") then
+        petRemote = obj
+        break
     end
-    logBox.Text = table.concat(logs, "\n")
 end
 
--- Hook Remotes
-local mt = getrawmetatable(game)
-local old = mt.__namecall
-setreadonly(mt, false)
+if not petRemote then
+    warn("❌ No valid pet spawn RemoteEvent found.")
+    return
+end
 
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if (method == "FireServer" or method == "InvokeServer") and typeof(self) == "Instance" then
-        local args = {...}
-        local path = self:GetFullName()
-        local success, encoded = pcall(function()
-            return HttpService:JSONEncode(args)
-        end)
-        if success then
-            addLog("[" .. method .. "] " .. path .. "\nArgs: " .. encoded)
-        else
-            addLog("[" .. method .. "] " .. path .. "\nArgs: (encoding failed)")
-        end
+-- ✅ GUI Creation
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "PetSpawnerGUI"
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Draggable = true
+frame.Active = true
+frame.Selectable = true
+
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+title.Text = "🐾 Pet Spawner"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+
+local ageBox = Instance.new("TextBox", frame)
+ageBox.PlaceholderText = "Enter Age"
+ageBox.Position = UDim2.new(0, 10, 0, 50)
+ageBox.Size = UDim2.new(1, -20, 0, 30)
+ageBox.Text = ""
+
+local weightBox = Instance.new("TextBox", frame)
+weightBox.PlaceholderText = "Enter Weight (KG)"
+weightBox.Position = UDim2.new(0, 10, 0, 90)
+weightBox.Size = UDim2.new(1, -20, 0, 30)
+weightBox.Text = ""
+
+local spawnButton = Instance.new("TextButton", frame)
+spawnButton.Text = "Spawn Raccoon"
+spawnButton.Position = UDim2.new(0, 10, 0, 140)
+spawnButton.Size = UDim2.new(1, -20, 0, 40)
+spawnButton.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnButton.Font = Enum.Font.GothamBold
+spawnButton.TextSize = 18
+
+spawnButton.MouseButton1Click:Connect(function()
+    local age = tonumber(ageBox.Text)
+    local weight = tonumber(weightBox.Text)
+    if not age or not weight then
+        warn("❌ Invalid input. Age and weight must be numbers.")
+        return
     end
-    return old(self, ...)
+
+    -- 🔁 Attempt to fire the remote (change args as needed)
+    local success, err = pcall(function()
+        petRemote:FireServer("SpawnPet", "Raccoon", age, weight)
+    end)
+
+    if not success then
+        warn("❌ Failed to spawn pet:", err)
+    else
+        print("✅ Spawned Raccoon with age:", age, "and weight:", weight)
+    end
 end)
-
-setreadonly(mt, true)
-
-addLog("✅ Remote Logger Lite started")
