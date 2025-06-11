@@ -1,27 +1,29 @@
--- 🐱 Freeze all MoonCats owned by you
--- Works by anchoring parts of models named "MoonCat"
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
 
-local function freezeMoonCats()
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == "MoonCat" then
-            local owner = obj:FindFirstChild("Owner")
-            if owner and owner:IsA("ObjectValue") and owner.Value == player then
-                for _, part in ipairs(obj:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.Anchored = true
-                    end
+local function tagNearbyModels()
+    for _, model in ipairs(workspace:GetDescendants()) do
+        if model:IsA("Model") and model:FindFirstChildWhichIsA("Humanoid") == nil then
+            local primary = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+            if primary and (primary.Position - character.HumanoidRootPart.Position).Magnitude < 50 then
+                if not model:FindFirstChild("TagBillboard") then
+                    local billboard = Instance.new("BillboardGui", model)
+                    billboard.Name = "TagBillboard"
+                    billboard.Size = UDim2.new(0, 100, 0, 40)
+                    billboard.AlwaysOnTop = true
+                    billboard.Adornee = primary
+
+                    local label = Instance.new("TextLabel", billboard)
+                    label.Size = UDim2.new(1, 0, 1, 0)
+                    label.Text = "📍 " .. model.Name
+                    label.TextColor3 = Color3.new(1, 1, 1)
+                    label.BackgroundTransparency = 1
+                    label.TextStrokeTransparency = 0.5
                 end
             end
         end
     end
 end
 
--- Freeze once, then repeat every 3 seconds to cover new MoonCats
-freezeMoonCats()
-while true do
-    task.wait(3)
-    freezeMoonCats()
-end
+tagNearbyModels()
