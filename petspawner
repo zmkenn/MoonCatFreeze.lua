@@ -1,61 +1,97 @@
--- Services
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
+-- CLIENT-SIDE PET DUPLICATOR GUI (for Delta)
+local Players       = game:GetService("Players")
+local Replicated    = game:GetService("ReplicatedStorage")
+local Content       = game:GetService("Content")
+local RunService    = game:GetService("RunService")
 
--- Remote Event
-local spawnEvent = ReplicatedStorage:WaitForChild("PetModule"):WaitForChild("SpawnPet")
+local player        = Players.LocalPlayer
+local templatesRoot = Content:WaitForChild("PetTemplates")
 
--- Player
-local player = Players.LocalPlayer
+-- Build the GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "LocalPetDuplicator"
 
--- Create GUI
-local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "PetSpawnerGUI"
-
-local frame = Instance.new("Frame", screenGui)
-frame.Size = UDim2.new(0, 250, 0, 200)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 300, 0, 260)
 frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
 frame.BorderSizePixel = 0
 
--- Pet Name
-local petNameBox = Instance.new("TextBox", frame)
-petNameBox.PlaceholderText = "Pet Name (e.g. Raccoon)"
-petNameBox.Size = UDim2.new(1, -20, 0, 30)
-petNameBox.Position = UDim2.new(0, 10, 0, 10)
-petNameBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-petNameBox.TextColor3 = Color3.fromRGB(255,255,255)
+local function makeLabel(text, y)
+    local l = Instance.new("TextLabel", frame)
+    l.Size = UDim2.new(1, -20, 0, 24)
+    l.Position = UDim2.new(0, 10, 0, y)
+    l.BackgroundTransparency = 1
+    l.TextColor3 = Color3.fromRGB(220,220,220)
+    l.Font = Enum.Font.SourceSans
+    l.TextSize = 18
+    l.Text = text
+    return l
+end
 
--- Age
-local ageBox = Instance.new("TextBox", frame)
-ageBox.PlaceholderText = "Age (e.g. 2)"
-ageBox.Size = UDim2.new(1, -20, 0, 30)
-ageBox.Position = UDim2.new(0, 10, 0, 50)
-ageBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ageBox.TextColor3 = Color3.fromRGB(255,255,255)
+local function makeBox(placeholder, y)
+    local b = Instance.new("TextBox", frame)
+    b.Size = UDim2.new(1, -20, 0, 28)
+    b.Position = UDim2.new(0, 10, 0, y)
+    b.PlaceholderText = placeholder
+    b.BackgroundColor3 = Color3.fromRGB(50,50,50)
+    b.TextColor3 = Color3.new(1,1,1)
+    b.ClearTextOnFocus = false
+    return b
+end
 
--- Weight
-local weightBox = Instance.new("TextBox", frame)
-weightBox.PlaceholderText = "Weight (e.g. 5)"
-weightBox.Size = UDim2.new(1, -20, 0, 30)
-weightBox.Position = UDim2.new(0, 10, 0, 90)
-weightBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-weightBox.TextColor3 = Color3.fromRGB(255,255,255)
+makeLabel("Template Name:", 10)
+local nameBox   = makeBox("e.g. Raccoon", 34)
+makeLabel("Age:", 72)
+local ageBox    = makeBox("e.g. 2", 96)
+makeLabel("Weight:", 134)
+local weightBox = makeBox("e.g. 5", 158)
+makeLabel("Count:", 196)
+local countBox  = makeBox("e.g. 3", 220)
 
--- Spawn Button
-local spawnButton = Instance.new("TextButton", frame)
-spawnButton.Text = "Spawn Pet"
-spawnButton.Size = UDim2.new(1, -20, 0, 40)
-spawnButton.Position = UDim2.new(0, 10, 0, 130)
-spawnButton.BackgroundColor3 = Color3.fromRGB(60, 100, 60)
-spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+local spawnBtn = Instance.new("TextButton", frame)
+spawnBtn.Size = UDim2.new(1, -20, 0, 30)
+spawnBtn.Position = UDim2.new(0, 10, 0, 250-40)
+spawnBtn.Text = "Spawn Pets"
+spawnBtn.Font = Enum.Font.SourceSansBold
+spawnBtn.TextSize = 20
+spawnBtn.BackgroundColor3 = Color3.fromRGB(80,120,80)
+spawnBtn.TextColor3 = Color3.new(1,1,1)
 
--- Function when button is clicked
-spawnButton.MouseButton1Click:Connect(function()
-    local petName = petNameBox.Text
-    local age = tonumber(ageBox.Text) or 0
-    local weight = tonumber(weightBox.Text) or 0
+-- Spawner logic
+spawnBtn.MouseButton1Click:Connect(function()
+    local tplName = nameBox.Text
+    local age     = tonumber(ageBox.Text) or 1
+    local weight  = tonumber(weightBox.Text) or 1
+    local count   = tonumber(countBox.Text) or 1
 
-    -- Try sending as 3 arguments (adjust if needed)
-    spawnEvent:FireServer(petName, age, weight)
+    local template = templatesRoot:FindFirstChild(tplName)
+    if not template then
+        warn("Template not found:", tplName)
+        return
+    end
+
+    local rootPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and
+                    player.Character.HumanoidRootPart.Position or Vector3.new(0,5,0)
+
+    for i = 1, count do
+        local clone = template:Clone()
+        clone.Parent = workspace
+        -- position them in a small circle around you:
+        local angle = (i-1)/count * math.pi*2
+        local offset = Vector3.new(math.cos(angle)*3, 0, math.sin(angle)*3)
+        local finalPos = rootPos + offset + Vector3.new(0, 1, 0)
+        if clone.PrimaryPart then
+            clone:SetPrimaryPartCFrame(CFrame.new(finalPos))
+        else
+            for _, part in ipairs(clone:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CFrame = CFrame.new(finalPos)
+                end
+            end
+        end
+        -- tag age & weight (for your reference)
+        clone:SetAttribute("Age", age)
+        clone:SetAttribute("Weight", weight)
+    end
 end)
