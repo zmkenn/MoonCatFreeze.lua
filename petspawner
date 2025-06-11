@@ -1,9 +1,9 @@
--- ✅ Freeze Existing MoonCat Pets (No spawner, no ReplicatedStorage)
+-- ✅ GUI-Based MoonCat Freezer with Passive Anchoring Fix Attempt
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- ✅ GUI Log Printer to Display Cat Structure
+-- ✅ GUI Log Printer
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "LogPrinterGUI"
 screenGui.ResetOnSpawn = false
@@ -24,43 +24,43 @@ logBox.Text = ""
 logBox.Parent = screenGui
 
 local function log(text)
-    logBox.Text = logBox.Text .. text .. "\n"
+	logBox.Text = logBox.Text .. text .. "\n"
 end
 
--- ✅ Freeze MoonCat Pets Already in Workspace
-local function freezeMoonCats()
-    local pets = workspace:FindFirstChild("PetsPhysical")
-    if not pets then
-        log("❌ PetsPhysical not found in workspace")
-        return
-    end
+local function freezeAllMoonCats()
+	local pets = workspace:FindFirstChild("PetsPhysical")
+	if not pets then
+		log("❌ PetsPhysical not found in workspace")
+		return
+	end
 
-    local mover = pets:FindFirstChild("PetMover")
-    if not mover then
-        log("❌ PetMover not found inside PetsPhysical")
-        return
-    end
+	local mover = pets:FindFirstChild("PetMover")
+	if not mover then
+		log("❌ PetMover not found inside PetsPhysical")
+		return
+	end
 
-    for _, model in ipairs(mover:GetChildren()) do
-        if model:IsA("Model") and model.Name == "Cat" then
-            log("📦 Freezing MoonCat Model:")
-            for _, descendant in ipairs(model:GetDescendants()) do
-                task.wait(0.01)
-                log(descendant:GetFullName())
+	for _, model in ipairs(mover:GetChildren()) do
+		if model:IsA("Model") and model.Name == "Cat" then
+			log("\n📦 Freezing MoonCat: " .. model:GetFullName())
 
-                if descendant:IsA("BasePart") then
-                    descendant.Anchored = true
-                    log("✅ Anchored: " .. descendant.Name)
-                end
-            end
+			-- Anchor and lock everything inside the model
+			for _, part in ipairs(model:GetDescendants()) do
+				if part:IsA("BasePart") then
+					part.Anchored = true
+					part.CanCollide = false
+					part:SetNetworkOwner(nil)
+				end
+			end
 
-            -- ✅ If it has passive effects, this keeps it "alive"
-            local humanoid = model:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            end
-        end
-    end
+			-- Force model to stay in place
+			local root = model:FindFirstChild("RootPart") or model:FindFirstChildWhichIsA("BasePart")
+			if root then
+				model.PrimaryPart = root
+				model:SetPrimaryPartCFrame(root.CFrame)
+			end
+		end
+	end
 end
 
-freezeMoonCats()
+freezeAllMoonCats()
