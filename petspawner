@@ -1,112 +1,141 @@
--- 🐾 GUI Pet Spawner Script for Grow a Garden (FINAL FIXED VERSION)
--- Use this in Delta after uploading to your GitHub:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
-
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- Destroy old UI if it exists
-if LocalPlayer.PlayerGui:FindFirstChild("PetSpawnerUI") then
-    LocalPlayer.PlayerGui.PetSpawnerUI:Destroy()
-end
-
--- UI Setup
+-- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PetSpawnerUI"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+screenGui.Parent = LocalPlayer.PlayerGui
 
+-- Create Frame
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 320, 0, 240)
-frame.Position = UDim2.new(0.5, -160, 0.5, -120)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.Size = UDim2.new(0, 340, 0, 240)
+frame.Position = UDim2.new(0.5, -170, 0.5, -120)
+frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Parent = screenGui
 
 local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 10)
+uiCorner.CornerRadius = UDim.new(0, 14)
 uiCorner.Parent = frame
 
-local function createInput(name, posY)
+local function createLabelAndInput(text, posY)
     local label = Instance.new("TextLabel")
-    label.Text = name .. ":"
-    label.Position = UDim2.new(0, 10, 0, posY)
-    label.Size = UDim2.new(0, 80, 0, 25)
+    label.Text = text .. ":"
+    label.Position = UDim2.new(0, 15, 0, posY)
+    label.Size = UDim2.new(0, 90, 0, 30)
     label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.new(1, 1, 1)
-    label.Font = Enum.Font.SourceSans
+    label.TextColor3 = Color3.fromRGB(230, 230, 230)
+    label.Font = Enum.Font.GothamBold
     label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = frame
 
     local input = Instance.new("TextBox")
-    input.PlaceholderText = name
-    input.Position = UDim2.new(0, 100, 0, posY)
-    input.Size = UDim2.new(0, 200, 0, 25)
-    input.Font = Enum.Font.SourceSans
+    input.PlaceholderText = text
+    input.Position = UDim2.new(0, 110, 0, posY)
+    input.Size = UDim2.new(0, 210, 0, 30)
+    input.Font = Enum.Font.Gotham
     input.TextSize = 18
-    input.TextColor3 = Color3.new(0, 0, 0)
-    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    input.TextColor3 = Color3.fromRGB(30, 30, 30)
+    input.BackgroundColor3 = Color3.fromRGB(230, 230, 230)
+    input.ClearTextOnFocus = false
     input.Parent = frame
 
     return input
 end
 
-local petInput = createInput("Pet Name", 10)
-local ageInput = createInput("Age", 45)
-local weightInput = createInput("Weight", 80)
+local petNameInput = createLabelAndInput("Pet Name", 20)
+local ageInput = createLabelAndInput("Age", 65)
+local weightInput = createLabelAndInput("Weight", 110)
 
 local spawnBtn = Instance.new("TextButton")
-spawnBtn.Position = UDim2.new(0.5, -100, 0, 130)
-spawnBtn.Size = UDim2.new(0, 200, 0, 50)
-spawnBtn.Text = "SPAWN PET"
-spawnBtn.Font = Enum.Font.SourceSansBold
+spawnBtn.Size = UDim2.new(0, 310, 0, 50)
+spawnBtn.Position = UDim2.new(0.5, -155, 0, 160)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+spawnBtn.Font = Enum.Font.GothamBold
 spawnBtn.TextSize = 24
-spawnBtn.TextColor3 = Color3.new(1, 1, 1)
-spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+spawnBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnBtn.Text = "Spawn Pet"
 spawnBtn.Parent = frame
 
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 0, 25)
+statusLabel.Position = UDim2.new(0, 0, 1, -30)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.TextSize = 18
+statusLabel.Text = ""
+statusLabel.Parent = frame
+
+local function findPetToolInReplicatedStorage(petName)
+    petName = petName:lower()
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("Tool") and obj.Name:lower() == petName then
+            return obj
+        end
+    end
+    return nil
+end
+
+local function equipTool(tool)
+    local character = LocalPlayer.Character
+    if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid:EquipTool(tool)
+    end
+end
+
 spawnBtn.MouseButton1Click:Connect(function()
-    local petName = petInput.Text
+    local petName = petNameInput.Text:match("^%s*(.-)%s*$")
+    if petName == "" then
+        statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        statusLabel.Text = "Error: Please enter a valid Pet Name."
+        return
+    end
+
     local age = tonumber(ageInput.Text) or 1
     local weight = tonumber(weightInput.Text) or 1
 
-    if not petName or petName == "" then
-        warn("❌ Please enter a pet name")
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    statusLabel.Text = "Searching pet tool..."
+
+    local petTool = findPetToolInReplicatedStorage(petName)
+    if not petTool then
+        statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        statusLabel.Text = "Error: Pet Tool not found in ReplicatedStorage."
         return
     end
 
-    local foundTool = nil
-    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Tool") and string.lower(obj.Name) == string.lower(petName) then
-            foundTool = obj
-            break
-        end
-    end
-
-    if not foundTool then
-        warn("❌ Pet Tool not found in ReplicatedStorage: " .. petName)
-        return
-    end
-
-    local cloned = foundTool:Clone()
-    cloned.Parent = LocalPlayer.Backpack
-
-    local ageValue = cloned:FindFirstChild("Age")
+    local clonedTool = petTool:Clone()
+    -- Set Age and Weight values if they exist on the cloned tool
+    local ageValue = clonedTool:FindFirstChild("Age")
     if ageValue and ageValue:IsA("NumberValue") then
         ageValue.Value = age
     end
 
-    local weightValue = cloned:FindFirstChild("Weight")
+    local weightValue = clonedTool:FindFirstChild("Weight")
     if weightValue and weightValue:IsA("NumberValue") then
         weightValue.Value = weight
     end
 
-    print("✅ Spawned " .. petName .. " with Age: " .. age .. " and Weight: " .. weight)
+    -- Parent the tool to player Backpack
+    clonedTool.Parent = LocalPlayer:WaitForChild("Backpack")
+
+    -- Equip the tool if character and humanoid exist
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        equipTool(clonedTool)
+    end
+
+    statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    statusLabel.Text = "✅ Spawned '" .. petName .. "' with Age: " .. age .. " and Weight: " .. weight
 end)
 
-print("✅ FINAL Pet Spawner GUI loaded")
+print("Pet Spawner GUI Loaded (Delta executor compatible)")
