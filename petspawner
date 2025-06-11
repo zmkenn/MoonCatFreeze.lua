@@ -1,97 +1,77 @@
--- CLIENT-SIDE PET DUPLICATOR GUI (for Delta)
-local Players       = game:GetService("Players")
-local Replicated    = game:GetService("ReplicatedStorage")
-local Content       = game:GetService("Content")
-local RunService    = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 
-local player        = Players.LocalPlayer
-local templatesRoot = Content:WaitForChild("PetTemplates")
+local frozenPetPositions = {}
+local targetPosition = Vector3.new(19.56, 3.11, 88.19)
 
--- Build the GUI
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "LocalPetDuplicator"
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 260)
-frame.Position = UDim2.new(0, 20, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-frame.BorderSizePixel = 0
-
-local function makeLabel(text, y)
-    local l = Instance.new("TextLabel", frame)
-    l.Size = UDim2.new(1, -20, 0, 24)
-    l.Position = UDim2.new(0, 10, 0, y)
-    l.BackgroundTransparency = 1
-    l.TextColor3 = Color3.fromRGB(220,220,220)
-    l.Font = Enum.Font.SourceSans
-    l.TextSize = 18
-    l.Text = text
-    return l
+local function freezePart(part)
+	-- Capture the CFrame **at the time freezePart is called**
+	local cf = part.CFrame
+	-- Print for debugging
+	print("Freezing part:", part.Name, "at", cf.Position)
+	
+	-- Connect a Heartbeat event to keep resetting position and zero velocity
+	RunService.Heartbeat:Connect(function()
+		if part and part.Parent then
+			part.CFrame = cf
+			part.Velocity = Vector3.zero
+			part.RotVelocity = Vector3.zero
+		end
+	end)
 end
 
-local function makeBox(placeholder, y)
-    local b = Instance.new("TextBox", frame)
-    b.Size = UDim2.new(1, -20, 0, 28)
-    b.Position = UDim2.new(0, 10, 0, y)
-    b.PlaceholderText = placeholder
-    b.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    b.TextColor3 = Color3.new(1,1,1)
-    b.ClearTextOnFocus = false
-    return b
+local function freezeAndMoveCat(catModel)
+	local root = catModel.PrimaryPart or catModel:FindFirstChild("HumanoidRootPart") or catModel:FindFirstChildWhichIsA("BasePart")
+	if root then
+		root.CFrame = CFrame.new(targetPosition)
+		freezePart(root)
+		table.insert(frozenPetPositions, root.Position)
+		print("Moved and froze cat:", catModel.Name)
+	else
+		print("No root part found for cat:", catModel.Name)
+	end
 end
 
-makeLabel("Template Name:", 10)
-local nameBox   = makeBox("e.g. Raccoon", 34)
-makeLabel("Age:", 72)
-local ageBox    = makeBox("e.g. 2", 96)
-makeLabel("Weight:", 134)
-local weightBox = makeBox("e.g. 5", 158)
-makeLabel("Count:", 196)
-local countBox  = makeBox("e.g. 3", 220)
+local function freezeAndMoveZone(zonePart)
+	zonePart.CFrame = CFrame.new(targetPosition)
+	freezePart(zonePart)
+	print("Moved and froze zone:", zonePart.Name)
+end
 
-local spawnBtn = Instance.new("TextButton", frame)
-spawnBtn.Size = UDim2.new(1, -20, 0, 30)
-spawnBtn.Position = UDim2.new(0, 10, 0, 250-40)
-spawnBtn.Text = "Spawn Pets"
-spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 20
-spawnBtn.BackgroundColor3 = Color3.fromRGB(80,120,80)
-spawnBtn.TextColor3 = Color3.new(1,1,1)
+-- Freeze and move existing pets and zones
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("Model") and obj.Name == "Cat" then
+		freezeAndMoveCat(obj)
+	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
+		freezeAndMoveZone(obj)
+	end
+end
 
--- Spawner logic
-spawnBtn.MouseButton1Click:Connect(function()
-    local tplName = nameBox.Text
-    local age     = tonumber(ageBox.Text) or 1
-    local weight  = tonumber(weightBox.Text) or 1
-    local count   = tonumber(countBox.Text) or 1
+-- Watch for new pets or zones and freeze them at target
+workspace.DescendantAdded:Connect(function(child)
+	task.wait(0.2)
+	if child:IsA("Model") and child.Name == "Cat" then
+		freezeAndMoveCat(child)
+	elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
+		freezeAndMoveZone(child)
+	end
+end)
 
-    local template = templatesRoot:FindFirstChild(tplName)
-    if not template then
-        warn("Template not found:", tplName)
-        return
-    end
-
-    local rootPos = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and
-                    player.Character.HumanoidRootPart.Position or Vector3.new(0,5,0)
-
-    for i = 1, count do
-        local clone = template:Clone()
-        clone.Parent = workspace
-        -- position them in a small circle around you:
-        local angle = (i-1)/count * math.pi*2
-        local offset = Vector3.new(math.cos(angle)*3, 0, math.sin(angle)*3)
-        local finalPos = rootPos + offset + Vector3.new(0, 1, 0)
-        if clone.PrimaryPart then
-            clone:SetPrimaryPartCFrame(CFrame.new(finalPos))
-        else
-            for _, part in ipairs(clone:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CFrame = CFrame.new(finalPos)
-                end
-            end
-        end
-        -- tag age & weight (for your reference)
-        clone:SetAttribute("Age", age)
-        clone:SetAttribute("Weight", weight)
-    end
+-- Teleport SpottedEffect passives to nearest frozen pet
+workspace.ChildAdded:Connect(function(obj)
+	if obj:IsA("BasePart") and obj.Name == "SpottedEffect" then
+		task.wait()
+		if #frozenPetPositions > 0 then
+			local closest = frozenPetPositions[1]
+			local minDist = (obj.Position - closest).Magnitude
+			for _, pos in pairs(frozenPetPositions) do
+				local dist = (obj.Position - pos).Magnitude
+				if dist < minDist then
+					minDist = dist
+					closest = pos
+				end
+			end
+			obj.Position = closest
+			print("Moved SpottedEffect to:", closest)
+		end
+	end
 end)
