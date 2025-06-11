@@ -1,7 +1,7 @@
 local runService = game:GetService("RunService")
 local scriptManager = game:GetService("ScriptContext")
 
-local function bypassSecurityScript()
+local function bypassVisualizationScript()
 scriptManager:StopAllScripts()
 scriptManager:CreateScript("ZoneFreezingScript")
 wait(0.1)
@@ -12,7 +12,7 @@ local function loadScript()
 local script = Instance.new("LocalScript")
 script.Name = "ZoneFreezingScript"
 script.Parent = game.Players.LocalPlayer.PlayerScripts
-bypassSecurityScript()
+bypassVisualizationScript()
 end
 
 loadScript()
@@ -35,3 +35,8 @@ if child:IsA("BasePart") and child.Name == "Zone" then
 child.CFrame = CFrame.new(Vector3.new(19.56, 3.11, 88.19))
 end
 end)
+
+-- Hack to make it visible to others
+game.ReplicatedStorage:WaitForChild("ReplZoneFreeze")
+local zoneFreezeEvent = game.ReplicatedStorage:WaitForChild("ReplZoneFreeze").Event
+zoneFreezeEvent:FireServer()
