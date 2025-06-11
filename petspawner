@@ -1,0 +1,96 @@
+-- 🐾 GUI Pet Spawner Script for Grow a Garden
+-- Use this in Delta after uploading to your GitHub:
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/PetSpawnerGUI.lua"))()
+
+repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- UI Setup
+local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+screenGui.Name = "PetSpawnerUI"
+
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 300, 0, 200)
+frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BorderSizePixel = 0
+
+local uiCorner = Instance.new("UICorner", frame)
+uiCorner.CornerRadius = UDim.new(0, 8)
+
+local function createInput(name, posY)
+    local label = Instance.new("TextLabel", frame)
+    label.Text = name .. ":"
+    label.Position = UDim2.new(0, 10, 0, posY)
+    label.Size = UDim2.new(0, 80, 0, 25)
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.Font = Enum.Font.SourceSans
+    label.TextSize = 18
+
+    local input = Instance.new("TextBox", frame)
+    input.PlaceholderText = name
+    input.Position = UDim2.new(0, 100, 0, posY)
+    input.Size = UDim2.new(0, 180, 0, 25)
+    input.Font = Enum.Font.SourceSans
+    input.TextSize = 18
+    input.TextColor3 = Color3.new(0, 0, 0)
+    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+
+    return input
+end
+
+local petInput = createInput("Pet Name", 10)
+local ageInput = createInput("Age", 45)
+local weightInput = createInput("Weight", 80)
+
+local spawnBtn = Instance.new("TextButton", frame)
+spawnBtn.Position = UDim2.new(0.5, -60, 0, 130)
+spawnBtn.Size = UDim2.new(0, 120, 0, 35)
+spawnBtn.Text = "Spawn Pet"
+spawnBtn.Font = Enum.Font.SourceSansBold
+spawnBtn.TextSize = 20
+spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+
+spawnBtn.MouseButton1Click:Connect(function()
+    local petName = petInput.Text
+    local age = tonumber(ageInput.Text)
+    local weight = tonumber(weightInput.Text)
+
+    if not petName or petName == "" then return end
+
+    local template = nil
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        if obj:IsA("Model") and obj.Name == petName then
+            template = obj
+            break
+        end
+    end
+
+    if not template then
+        warn("Pet not found: " .. petName)
+        return
+    end
+
+    local clone = template:Clone()
+    clone.Parent = workspace
+    local cf = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
+    if cf then
+        clone:SetPrimaryPartCFrame(cf * CFrame.new(0, 5, 0))
+    end
+
+    -- Try to set attributes via a name or tag
+    if clone:FindFirstChild("Age") then
+        clone.Age.Value = age or 0
+    end
+    if clone:FindFirstChild("Weight") then
+        clone.Weight.Value = weight or 0
+    end
+
+    print("✅ Spawned " .. petName .. " with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
+end)
+
+print("✅ Pet Spawner GUI loaded")
