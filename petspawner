@@ -1,42 +1,40 @@
-local runService = game:GetService("RunService")
-local scriptManager = game:GetService("ScriptContext")
+-- Create a new garden
+local garden = Instance.new("Model")
+garden.Name = "Garden"
+garden.Parent = game.Workspace
 
-local function bypassVisualizationScript()
-scriptManager:StopAllScripts()
-scriptManager:CreateScript("ZoneFreezingScript")
-wait(0.1)
-scriptManager:ResumeScripts()
+-- Create a new pet spawner
+local petSpawner = Instance.new("Model")
+petSpawner.Name = "PetSpawner"
+petSpawner.Parent = garden
+
+-- Create a new pet model
+local petModel = Instance.new("Model")
+petModel.Name = "Pet"
+petModel.Parent = petSpawner
+
+-- Create a new pet
+local function spawnPet()
+local pet = Instance.new("Model")
+pet.Name = "Pet"
+pet.Parent = petSpawner
 end
 
-local function loadScript()
-local script = Instance.new("LocalScript")
-script.Name = "ZoneFreezingScript"
-script.Parent = game.Players.LocalPlayer.PlayerScripts
-bypassVisualizationScript()
-end
-
-loadScript()
-
--- Zone freezing script
-local function freezeZone()
-for _, child in pairs(workspace:GetDescendants()) do
-if child:IsA("BasePart") and child.Name == "Zone" then
-child.CFrame = CFrame.new(Vector3.new(19.56, 3.11, 88.19))
-end
-end
-end
-
-freezeZone()
-
--- Keep watching for new zones added dynamically
-workspace.DescendantAdded:Connect(function(child)
-task.wait(0.2) -- allow it to initialize
-if child:IsA("BasePart") and child.Name == "Zone" then
-child.CFrame = CFrame.new(Vector3.new(19.56, 3.11, 88.19))
-end
+-- Spawning pets every 5 seconds
+game:GetService("RunService").Stepped:Connect(function()
+spawnPet()
 end)
 
--- Hack to make it visible to others
-game.ReplicatedStorage:WaitForChild("ReplZoneFreeze")
-local zoneFreezeEvent = game.ReplicatedStorage:WaitForChild("ReplZoneFreeze").Event
-zoneFreezeEvent:FireServer()
+-- Growing a garden
+local function growGarden()
+for _, seed in pairs(garden:GetChildren()) do
+if seed:IsA("BasePart") then
+seed.Size = seed.Size + Vector3.new(0.1, 0.1, 0.1)
+end
+end
+end
+
+-- Growing the garden every 10 seconds
+game:GetService("RunService").Stepped:Connect(function()
+growGarden()
+end)
