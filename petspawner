@@ -1,12 +1,13 @@
--- 🐾 GUI Pet Spawner Script for Grow a Garden
--- Use this in Delta after uploading to your GitHub:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/PetSpawnerGUI.lua"))()
+-- 🐾 Updated GUI Pet Spawner Script for Grow a Garden (with visual inventory integration)
+-- Use this in Delta after uploading to GitHub:
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner"))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+local Backpack = LocalPlayer:WaitForChild("Backpack")
 
 -- UI Setup
 local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -18,8 +19,7 @@ frame.Position = UDim2.new(0.5, -150, 0.5, -100)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 
-local uiCorner = Instance.new("UICorner", frame)
-uiCorner.CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
 
 local function createInput(name, posY)
     local label = Instance.new("TextLabel", frame)
@@ -64,33 +64,24 @@ spawnBtn.MouseButton1Click:Connect(function()
 
     local template = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name == petName then
+        if obj:IsA("Tool") and obj.Name:match(petName) then
             template = obj
             break
         end
     end
 
     if not template then
-        warn("Pet not found: " .. petName)
+        warn("Pet Tool not found: " .. petName)
         return
     end
 
-    local clone = template:Clone()
-    clone.Parent = workspace
-    local cf = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character.HumanoidRootPart.CFrame
-    if cf then
-        clone:SetPrimaryPartCFrame(cf * CFrame.new(0, 5, 0))
-    end
+    local petTool = template:Clone()
+    petTool.Parent = Backpack
 
-    -- Try to set attributes via a name or tag
-    if clone:FindFirstChild("Age") then
-        clone.Age.Value = age or 0
-    end
-    if clone:FindFirstChild("Weight") then
-        clone.Weight.Value = weight or 0
-    end
+    -- Fake setting of Age/Weight as string in tool name if properties are missing
+    petTool.Name = string.format("%s [%.2f KG] [Age %d]", petName, weight or 0, age or 0)
 
-    print("✅ Spawned " .. petName .. " with Age: " .. tostring(age) .. ", Weight: " .. tostring(weight))
+    print("✅ Tool added to inventory: " .. petTool.Name)
 end)
 
-print("✅ Pet Spawner GUI loaded")
+print("✅ Pet Spawner GUI (Inventory Tool Mode) Loaded")
