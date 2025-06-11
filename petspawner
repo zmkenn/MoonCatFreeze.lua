@@ -1,28 +1,38 @@
--- Freeze all pets in workspace.Animals on the client
-local RunService = game:GetService("RunService")
--- Wait for the Animals folder to exist (your plot’s pets container)
-local animals = workspace:WaitForChild("Animals")
+-- ✅ Freeze all pets locally by anchoring their parts (for Grow a Garden)
 
--- Function to anchor a pet model
+local function notify(msg)
+    print("[Pet Freezer] " .. msg)
+end
+
 local function freezePet(pet)
     if pet:IsA("Model") then
         for _, part in ipairs(pet:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.Anchored = true    -- anchor the part to lock position
-            end
-            if part:IsA("BodyMover") then
-                part:Destroy()         -- remove any BodyMover (BodyPosition, etc.)
+                part.Anchored = true
+            elseif part:IsA("BodyMover") then
+                part:Destroy()
             end
         end
+        notify("✔️ Frozen pet: " .. pet.Name)
     end
 end
 
--- Freeze existing pets
-for _, pet in ipairs(animals:GetChildren()) do
+local animalsFolder = workspace:FindFirstChild("Animals") or workspace:FindFirstChild("Pets") or nil
+
+if not animalsFolder then
+    notify("❌ Could not find pet folder (e.g., Animals or Pets in workspace).")
+    return
+end
+
+notify("✅ Found pet folder: " .. animalsFolder.Name)
+
+-- Freeze all current pets
+for _, pet in ipairs(animalsFolder:GetChildren()) do
     freezePet(pet)
 end
 
--- Freeze any pets that spawn later
-animals.ChildAdded:Connect(function(pet)
+-- Freeze pets that spawn later
+animalsFolder.ChildAdded:Connect(function(pet)
+    wait(0.5) -- give time to load
     freezePet(pet)
 end)
