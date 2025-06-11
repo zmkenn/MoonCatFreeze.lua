@@ -1,36 +1,8 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local function hookRemote(obj)
-    if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-        local path = obj:GetFullName()
-        print("📡 Hooked:", path)
-
-        if obj:IsA("RemoteEvent") then
-            local oldFireServer = obj.FireServer
-            obj.FireServer = function(self, ...)
-                print("📤 RemoteEvent Fired:", path)
-                local args = {...}
-                for i, v in ipairs(args) do
-                    print("  Arg", i, ":", v)
-                end
-                return oldFireServer(self, ...)
-            end
-        elseif obj:IsA("RemoteFunction") then
-            local oldInvokeServer = obj.InvokeServer
-            obj.InvokeServer = function(self, ...)
-                print("📤 RemoteFunction Invoked:", path)
-                local args = {...}
-                for i, v in ipairs(args) do
-                    print("  Arg", i, ":", v)
-                end
-                return oldInvokeServer(self, ...)
-            end
-        end
+for _,v in pairs(getgc(true)) do
+    if typeof(v) == "function" and islclosure(v) and debug.getinfo(v).name == "FireServer" then
+        hookfunction(v, function(...)
+            print("📤 Remote Fired:", ...)
+            return v(...)
+        end)
     end
 end
-
-for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-    hookRemote(v)
-end
-
-ReplicatedStorage.DescendantAdded:Connect(hookRemote)
