@@ -1,79 +1,37 @@
-local RunService = game:GetService("RunService")
+local runService = game:GetService("RunService")
+local scriptManager = game:GetService("ScriptContext")
 
--- Set this to your tree position
-local treePosition = Vector3.new(19.56, 3.11, 88.19)
-
--- Helper: freeze part at tree position
-local function freezePartAtPosition(part, position)
-local cf = CFrame.new(position)
-RunService.Heartbeat:Connect(function()
-if part and part.Parent then
-part.CFrame = cf
-part.Velocity = Vector3.zero
-part.RotVelocity = Vector3.zero
-end
-end)
+local function bypassSecurityScript()
+scriptManager:StopAllScripts()
+scriptManager:CreateScript("ZoneFreezingScript")
+wait(0.1)
+scriptManager:ResumeScripts()
 end
 
--- Move and freeze Moon Cat and its Zone parts
-local function moveAndFreezePet(catModel)
-local root = catModel.PrimaryPart or catModel:FindFirstChild("HumanoidRootPart") or catModel:FindFirstChildWhichIsA("BasePart")
-if root then
-root.CFrame = CFrame.new(treePosition)
-freezePartAtPosition(root, treePosition)
+local function loadScript()
+local script = Instance.new("LocalScript")
+script.Name = "ZoneFreezingScript"
+script.Parent = game.Players.LocalPlayer.PlayerScripts
+bypassSecurityScript()
 end
 
--- Move and freeze PetMover.Zone parts inside this catModel or nearby
-for _, zone in pairs(catModel:GetChildren()) do
-if zone:IsA("BasePart") and zone.Name == "Zone" then
-zone.CFrame = CFrame.new(treePosition)
-freezePartAtPosition(zone, treePosition)
-end
-end
+loadScript()
 
--- Activate the passive effect here
-root.Activate = true
-end
-
--- Move and freeze standalone PetMover.Zone parts (not inside cats)
-local function moveAndFreezeStandaloneZones()
-for _, zone in pairs(workspace:GetDescendants()) do
-if zone:IsA("BasePart") and zone.Name == "Zone" and zone.Parent and zone.Parent.Name == "PetMover" then
-zone.CFrame = CFrame.new(treePosition)
-freezePartAtPosition(zone, treePosition)
+-- Zone freezing script
+local function freezeZone()
+for _, child in pairs(workspace:GetDescendants()) do
+if child:IsA("BasePart") and child.Name == "Zone" then
+child.CFrame = CFrame.new(Vector3.new(19.56, 3.11, 88.19))
 end
 end
 end
 
--- Move passive visual effects like SpottedEffect near the tree
-local function movePassiveEffects()
-for _, effect in pairs(workspace:GetChildren()) do
-if effect:IsA("BasePart") and effect.Name == "SpottedEffect" then
-effect.CFrame = CFrame.new(treePosition + Vector3.new(0, 1.5, 0)) -- slightly above tree pos
-effect.Activate = true
-end
-end
-end
+freezeZone()
 
--- Initial move + freeze for existing cats, zones, and effects
-for _, obj in pairs(workspace:GetDescendants()) do
-if obj:IsA("Model") and obj.Name == "Cat" then
-moveAndFreezePet(obj)
-end
-end
-moveAndFreezeStandaloneZones()
-movePassiveEffects()
-
--- Keep watching for new pets, zones, or effects added dynamically
+-- Keep watching for new zones added dynamically
 workspace.DescendantAdded:Connect(function(child)
 task.wait(0.2) -- allow it to initialize
-if child:IsA("Model") and child.Name == "Cat" then
-moveAndFreezePet(child)
-elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
-child.CFrame = CFrame.new(treePosition)
-freezePartAtPosition(child, treePosition)
-elseif child:IsA("BasePart") and child.Name == "SpottedEffect" then
-child.CFrame = CFrame.new(treePosition + Vector3.new(0, 1.5, 0))
-child.Activate = true
+if child:IsA("BasePart") and child.Name == "Zone" then
+child.CFrame = CFrame.new(Vector3.new(19.56, 3.11, 88.19))
 end
 end)
