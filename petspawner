@@ -1,11 +1,15 @@
 local RunService = game:GetService("RunService")
 
--- Store frozen pet positions
 local frozenPetPositions = {}
+local targetPosition = Vector3.new(19.56, 3.11, 88.19)
 
--- Freezer helper
 local function freezePart(part)
+	-- Capture the CFrame **at the time freezePart is called**
 	local cf = part.CFrame
+	-- Print for debugging
+	print("Freezing part:", part.Name, "at", cf.Position)
+	
+	-- Connect a Heartbeat event to keep resetting position and zero velocity
 	RunService.Heartbeat:Connect(function()
 		if part and part.Parent then
 			part.CFrame = cf
@@ -15,39 +19,48 @@ local function freezePart(part)
 	end)
 end
 
--- Freeze existing Cats and Zones
-for _, obj in pairs(workspace:GetDescendants()) do
-	if obj:IsA("Model") and obj.Name == "Cat" then
-		local root = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
-		if root then
-			freezePart(root)
-			table.insert(frozenPetPositions, root.Position)
-		end
-	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
-		freezePart(obj)
+local function freezeAndMoveCat(catModel)
+	local root = catModel.PrimaryPart or catModel:FindFirstChild("HumanoidRootPart") or catModel:FindFirstChildWhichIsA("BasePart")
+	if root then
+		root.CFrame = CFrame.new(targetPosition)
+		freezePart(root)
+		table.insert(frozenPetPositions, root.Position)
+		print("Moved and froze cat:", catModel.Name)
+	else
+		print("No root part found for cat:", catModel.Name)
 	end
 end
 
--- Watch for new pets or zones
+local function freezeAndMoveZone(zonePart)
+	zonePart.CFrame = CFrame.new(targetPosition)
+	freezePart(zonePart)
+	print("Moved and froze zone:", zonePart.Name)
+end
+
+-- Freeze and move existing pets and zones
+for _, obj in pairs(workspace:GetDescendants()) do
+	if obj:IsA("Model") and obj.Name == "Cat" then
+		freezeAndMoveCat(obj)
+	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
+		freezeAndMoveZone(obj)
+	end
+end
+
+-- Watch for new pets or zones and freeze them at target
 workspace.DescendantAdded:Connect(function(child)
 	task.wait(0.2)
 	if child:IsA("Model") and child.Name == "Cat" then
-		local root = child.PrimaryPart or child:FindFirstChild("HumanoidRootPart") or child:FindFirstChildWhichIsA("BasePart")
-		if root then
-			freezePart(root)
-			table.insert(frozenPetPositions, root.Position)
-		end
+		freezeAndMoveCat(child)
 	elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
-		freezePart(child)
+		freezeAndMoveZone(child)
 	end
 end)
 
--- Teleport SpottedEffect to nearest frozen pet
+-- Teleport SpottedEffect passives to nearest frozen pet
 workspace.ChildAdded:Connect(function(obj)
 	if obj:IsA("BasePart") and obj.Name == "SpottedEffect" then
-		task.wait() -- Let it initialize
+		task.wait()
 		if #frozenPetPositions > 0 then
-			-- Find closest frozen position
 			local closest = frozenPetPositions[1]
 			local minDist = (obj.Position - closest).Magnitude
 			for _, pos in pairs(frozenPetPositions) do
@@ -58,6 +71,7 @@ workspace.ChildAdded:Connect(function(obj)
 				end
 			end
 			obj.Position = closest
+			print("Moved SpottedEffect to:", closest)
 		end
 	end
 end)
