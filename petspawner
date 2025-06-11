@@ -1,40 +1,13 @@
--- Create a new garden
-local garden = Instance.new("Model")
-garden.Name = "Garden"
-garden.Parent = game.Workspace
+-- Make sure Delta has proper permissions to access ReplicatedStorage
+local petEvent = game:GetService("ReplicatedStorage"):WaitForChild("PetModule"):WaitForChild("SpawnPet")
 
--- Create a new pet spawner
-local petSpawner = Instance.new("Model")
-petSpawner.Name = "PetSpawner"
-petSpawner.Parent = garden
+-- Change "Raccoon" to the pet name you want to spawn
+local petName = "Raccoon"
 
--- Create a new pet model
-local petModel = Instance.new("Model")
-petModel.Name = "Pet"
-petModel.Parent = petSpawner
+-- Number of pets to spawn
+local count = 5
 
--- Create a new pet
-local function spawnPet()
-local pet = Instance.new("Model")
-pet.Name = "Pet"
-pet.Parent = petSpawner
+for i = 1, count do
+    petEvent:FireServer(petName)
+    wait(0.25) -- slight delay to avoid detection or server lag
 end
-
--- Spawning pets every 5 seconds
-game:GetService("RunService").Stepped:Connect(function()
-spawnPet()
-end)
-
--- Growing a garden
-local function growGarden()
-for _, seed in pairs(garden:GetChildren()) do
-if seed:IsA("BasePart") then
-seed.Size = seed.Size + Vector3.new(0.1, 0.1, 0.1)
-end
-end
-end
-
--- Growing the garden every 10 seconds
-game:GetService("RunService").Stepped:Connect(function()
-growGarden()
-end)
