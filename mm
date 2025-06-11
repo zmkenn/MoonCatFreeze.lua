@@ -1,6 +1,7 @@
--- 🌐 Remote Loadstring-Compatible Version
--- Upload this script to GitHub, then load it via Delta using:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/YourName/YourRepo/main/mooncat_freeze.lua"))()
+-- ✅ Moon Cat Freeze Script (final version)
+-- Upload to GitHub with filename: MoonCatFreeze.lua
+-- Use this exact loadstring to run in Delta:
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/MoonCatFreeze.lua"))()
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
 
@@ -28,7 +29,8 @@ RunService.Heartbeat:Connect(function()
             if cf then
                 for _, part in ipairs(model:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CFrame = cf:ToWorldSpace(part.CFrame:ToObjectSpace(part.CFrame))
+                        part.Anchored = true
+                        part.CFrame = cf
                         part.Velocity = Vector3.zero
                         part.RotVelocity = Vector3.zero
                     end
@@ -38,4 +40,4 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
-print("✅ Moon Cat HARD freeze (Remote Version) running")
+print("✅ Moon Cat freeze script running")
