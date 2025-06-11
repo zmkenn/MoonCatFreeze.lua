@@ -1,6 +1,4 @@
--- 🐾 GUI Pet Spawner Script for Grow a Garden
--- Use this in Delta after uploading to your GitHub:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/petspawner", true))()
+-- Pet Spawner GUI for Grow a Garden (for testing)
 
 repeat wait() until game:IsLoaded() and game.Players.LocalPlayer and game.Players.LocalPlayer:FindFirstChild("PlayerGui")
 
@@ -8,12 +6,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- UI Setup
+-- Create ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "PetSpawnerUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+-- Create Main Frame
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 320, 0, 220)
 frame.Position = UDim2.new(0.5, -160, 0.5, -110)
@@ -27,6 +26,7 @@ local uiCorner = Instance.new("UICorner")
 uiCorner.CornerRadius = UDim.new(0, 10)
 uiCorner.Parent = frame
 
+-- Utility function to create labeled input TextBoxes
 local function createInput(name, posY)
     local label = Instance.new("TextLabel")
     label.Text = name .. ":"
@@ -36,6 +36,7 @@ local function createInput(name, posY)
     label.TextColor3 = Color3.new(1, 1, 1)
     label.Font = Enum.Font.SourceSans
     label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
     label.Parent = frame
 
     local input = Instance.new("TextBox")
@@ -45,18 +46,21 @@ local function createInput(name, posY)
     input.Font = Enum.Font.SourceSans
     input.TextSize = 18
     input.TextColor3 = Color3.new(0, 0, 0)
-    input.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    input.BackgroundColor3 = Color3.fromRGB(220, 220, 220)
+    input.ClearTextOnFocus = false
     input.Parent = frame
 
     return input
 end
 
+-- Create Inputs
 local petInput = createInput("Pet Name", 10)
-local ageInput = createInput("Age", 45)
-local weightInput = createInput("Weight", 80)
+local ageInput = createInput("Age", 50)
+local weightInput = createInput("Weight", 90)
 
+-- Spawn Button
 local spawnBtn = Instance.new("TextButton")
-spawnBtn.Position = UDim2.new(0.5, -100, 0, 130)
+spawnBtn.Position = UDim2.new(0.5, -100, 0, 140)
 spawnBtn.Size = UDim2.new(0, 200, 0, 50)
 spawnBtn.Text = "SPAWN PET"
 spawnBtn.Font = Enum.Font.SourceSansBold
@@ -65,13 +69,18 @@ spawnBtn.TextColor3 = Color3.new(1, 1, 1)
 spawnBtn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
 spawnBtn.Parent = frame
 
+-- Spawn Pet functionality
 spawnBtn.MouseButton1Click:Connect(function()
-    local petName = petInput.Text
+    local petName = petInput.Text:match("^%s*(.-)%s*$") -- trim spaces
     local age = tonumber(ageInput.Text) or 1
     local weight = tonumber(weightInput.Text) or 1
 
-    if not petName or petName == "" then return end
+    if petName == "" then
+        warn("Please enter a Pet Name.")
+        return
+    end
 
+    -- Find tool in ReplicatedStorage
     local foundTool = nil
     for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
         if obj:IsA("Tool") and string.lower(obj.Name) == string.lower(petName) then
@@ -85,17 +94,25 @@ spawnBtn.MouseButton1Click:Connect(function()
         return
     end
 
-    local cloned = foundTool:Clone()
-    cloned.Parent = LocalPlayer.Character or LocalPlayer.Backpack
+    -- Clone the tool
+    local clonedTool = foundTool:Clone()
 
-    local ageValue = cloned:FindFirstChild("Age")
+    -- Set Age and Weight values if they exist inside the tool
+    local ageValue = clonedTool:FindFirstChild("Age")
     if ageValue and ageValue:IsA("NumberValue") then
         ageValue.Value = age
     end
 
-    local weightValue = cloned:FindFirstChild("Weight")
+    local weightValue = clonedTool:FindFirstChild("Weight")
     if weightValue and weightValue:IsA("NumberValue") then
         weightValue.Value = weight
+    end
+
+    -- Wait for character to be loaded & set parent accordingly
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        clonedTool.Parent = LocalPlayer.Character
+    else
+        clonedTool.Parent = LocalPlayer.Backpack
     end
 
     print("✅ Spawned " .. petName .. " with Age: " .. age .. " and Weight: " .. weight)
