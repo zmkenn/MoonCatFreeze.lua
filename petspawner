@@ -1,66 +1,75 @@
--- ✅ GUI-Based MoonCat Freezer with Passive Anchoring Fix Attempt
+-- MoonCat Full Freezer with Passive Visual Lock
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- ✅ GUI Log Printer
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "LogPrinterGUI"
+-- Create GUI Logger
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "FreezeLogger"
 screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local logBox = Instance.new("TextLabel")
+local logBox = Instance.new("TextLabel", screenGui)
 logBox.Size = UDim2.new(0, 500, 0, 400)
 logBox.Position = UDim2.new(0, 20, 0, 20)
 logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
 logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
 logBox.TextWrapped = true
 logBox.TextScaled = false
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
 logBox.Text = ""
-logBox.Parent = screenGui
 
-local function log(text)
-	logBox.Text = logBox.Text .. text .. "\n"
+local function log(msg)
+	logBox.Text = logBox.Text .. msg .. "\n"
 end
 
-local function freezeAllMoonCats()
-	local pets = workspace:FindFirstChild("PetsPhysical")
-	if not pets then
-		log("❌ PetsPhysical not found in workspace")
-		return
-	end
+-- Function to freeze all MoonCats
+local function freezeMoonCats()
+	local petsFolder = workspace:FindFirstChild("PetsPhysical")
+	if not petsFolder then return log("❌ PetsPhysical not found") end
 
-	local mover = pets:FindFirstChild("PetMover")
-	if not mover then
-		log("❌ PetMover not found inside PetsPhysical")
-		return
-	end
+	local petMover = petsFolder:FindFirstChild("PetMover")
+	if not petMover then return log("❌ PetMover not found") end
 
-	for _, model in ipairs(mover:GetChildren()) do
-		if model:IsA("Model") and model.Name == "Cat" then
-			log("\n📦 Freezing MoonCat: " .. model:GetFullName())
+	local count = 0
+	for _, pet in pairs(petMover:GetChildren()) do
+		if pet:IsA("Model") and pet.Name == "Cat" then
+			count += 1
+			log("📦 Freezing MoonCat #" .. count)
 
-			-- Anchor and lock everything inside the model
-			for _, part in ipairs(model:GetDescendants()) do
-				if part:IsA("BasePart") then
-					part.Anchored = true
-					part.CanCollide = false
-					part:SetNetworkOwner(nil)
+			local clone = pet:Clone()
+			clone.Name = "FrozenMoonCat_" .. tostring(count)
+
+			-- Anchor all parts in the clone
+			for _, item in pairs(clone:GetDescendants()) do
+				if item:IsA("BasePart") then
+					item.Anchored = true
+					item.CanCollide = false
+					item:SetNetworkOwner(nil)
 				end
 			end
 
-			-- Force model to stay in place
-			local root = model:FindFirstChild("RootPart") or model:FindFirstChildWhichIsA("BasePart")
+			-- Place the frozen copy in the same location
+			local root = pet:FindFirstChild("RootPart") or pet.PrimaryPart or pet:FindFirstChildWhichIsA("BasePart")
 			if root then
-				model.PrimaryPart = root
-				model:SetPrimaryPartCFrame(root.CFrame)
+				clone:SetPrimaryPartCFrame(root.CFrame)
+				clone.Parent = petMover
+			else
+				log("⚠️ Could not find RootPart for: " .. pet.Name)
 			end
+
+			-- Optional: hide original
+			-- pet.Parent = nil
 		end
+	end
+
+	if count == 0 then
+		log("❌ No MoonCats found.")
+	else
+		log("✅ Done freezing " .. count .. " MoonCats.")
 	end
 end
 
-freezeAllMoonCats()
+freezeMoonCats()
