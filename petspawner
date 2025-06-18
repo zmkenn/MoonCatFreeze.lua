@@ -1,49 +1,66 @@
 local RS = game:GetService("ReplicatedStorage")
-local player = game:GetService("Players").LocalPlayer
+local player = game.Players.LocalPlayer
 
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "RemoteLogger"
+-- Billboard logger setup
+local part = Instance.new("Part")
+part.Name = "LoggerPart"
+part.Size = Vector3.new(4, 1, 1)
+part.Position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0) or Vector3.new(0, 10, 0)
+part.Anchored = true
+part.CanCollide = false
+part.Parent = workspace
 
-local box = Instance.new("TextLabel", gui)
-box.Size = UDim2.new(0, 600, 0, 400)
-box.Position = UDim2.new(0, 10, 0, 10)
-box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-box.TextColor3 = Color3.fromRGB(0, 255, 0)
-box.TextXAlignment = Enum.TextXAlignment.Left
-box.TextYAlignment = Enum.TextYAlignment.Top
-box.Font = Enum.Font.Code
-box.TextSize = 14
-box.TextWrapped = true
-box.Text = "✅ Logger Ready\n"
+local billboard = Instance.new("BillboardGui", part)
+billboard.Size = UDim2.new(0, 400, 0, 100)
+billboard.AlwaysOnTop = true
+billboard.StudsOffset = Vector3.new(0, 2, 0)
 
-local function log(txt)
-    box.Text = box.Text .. txt .. "\n"
+local label = Instance.new("TextLabel", billboard)
+label.Size = UDim2.new(1, 0, 1, 0)
+label.BackgroundTransparency = 1
+label.TextColor3 = Color3.new(0, 1, 0)
+label.TextScaled = true
+label.Text = "Listening..."
+
+-- Logging function
+local function updateLog(msg)
+    label.Text = msg
 end
 
 local function hookRemote(obj)
     if obj:IsA("RemoteEvent") then
-        local fullName = obj:GetFullName()
+        local name = obj:GetFullName()
         local original = obj.FireServer
         obj.FireServer = function(self, ...)
             local args = {...}
-            local argText = ""
-            for i, v in ipairs(args) do
-                argText = argText .. "[" .. i .. "] = " .. tostring(v) .. "  "
+            local strArgs = ""
+            for i,v in ipairs(args) do
+                strArgs = strArgs .. tostring(i) .. ":" .. tostring(v) .. " "
             end
-            log("🚀 Fired: " .. fullName .. " | Args: " .. argText)
+            updateLog("🚀 " .. name .. "\nArgs: " .. strArgs)
+            return original(self, ...)
+        end
+    elseif obj:IsA("RemoteFunction") then
+        local name = obj:GetFullName()
+        local original = obj.InvokeServer
+        obj.InvokeServer = function(self, ...)
+            local args = {...}
+            local strArgs = ""
+            for i,v in ipairs(args) do
+                strArgs = strArgs .. tostring(i) .. ":" .. tostring(v) .. " "
+            end
+            updateLog("🔁 " .. name .. "\nArgs: " .. strArgs)
             return original(self, ...)
         end
     end
 end
 
--- Hook existing and new
-for _, v in pairs(RS:GetDescendants()) do
-    hookRemote(v)
+for _, obj in ipairs(RS:GetDescendants()) do
+    hookRemote(obj)
 end
 
 RS.DescendantAdded:Connect(function(obj)
-    task.wait()
     hookRemote(obj)
 end)
 
-log("📡 Logger initialized. Do an action (like spawning a pet).")
+updateLog("✅ Ready. Do pet actions.")
