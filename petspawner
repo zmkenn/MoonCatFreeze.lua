@@ -1,13 +1,50 @@
-local CmdrFunction = game:GetService("ReplicatedStorage"):WaitForChild("CmdrClient"):WaitForChild("CmdrFunction")
+-- 🚨 FINAL ATTEMPT: DUPLICATE PET (VISUAL + CLIENT-SIDE INVENTORY + RANDOMIZED TO AVOID DELETION)
+-- ⚠️ This is a CLIENT-SIDE FAKE visual duplicate. It will NOT persist or be seen by others.
+-- ✅ Adds pet model to your plot visually with randomized weight/age
+-- ❗ Requires Delta/VEGA X, and you must run this while the original pet is on your plot
 
-local oldInvoke
-oldInvoke = hookfunction(CmdrFunction.InvokeServer, function(self, ...)
-    print("[🔍 CmdrFunction Triggered]")
-    local args = {...}
-    for i, v in ipairs(args) do
-        print("Arg[" .. i .. "]:", v)
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- ✅ SETTINGS (change name to pet you want to duplicate)
+local petName = "Raccoon" -- or "MoonCat", etc.
+local randomAge = math.random(1, 10) -- Age must be whole number
+local randomWeight = tonumber(string.format("%.2f", math.random(100, 999) / 100)) -- e.g. 5.43
+
+-- ✅ Find the pet in the Workspace
+local function findPetModel()
+    for _, pet in pairs(Workspace.PetsPhysical:GetChildren()) do
+        if pet.Name == petName and pet:FindFirstChild("Torso") then
+            return pet
+        end
     end
-    return oldInvoke(self, ...)
-end)
+end
 
-print("✅ Hooked CmdrFunction - waiting for triggers...")
+-- ✅ Clone and place the pet
+local function duplicatePet()
+    local originalPet = findPetModel()
+    if not originalPet then
+        warn("❌ Pet model not found in workspace!")
+        return
+    end
+
+    local clone = originalPet:Clone()
+    clone.Name = petName .. "_Clone"
+    clone.Parent = Workspace.PetsPhysical
+    clone:SetPrimaryPartCFrame(originalPet:GetPrimaryPartCFrame() * CFrame.new(3, 0, 3))
+
+    -- Add fake values to try avoid deletion
+    if clone:FindFirstChild("Age") then
+        clone.Age.Value = randomAge
+    end
+    if clone:FindFirstChild("Weight") then
+        clone.Weight.Value = randomWeight
+    end
+
+    print("✅ Fake clone spawned with Age:", randomAge, "Weight:", randomWeight)
+end
+
+-- ✅ Execute
+duplicatePet()
