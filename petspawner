@@ -1,64 +1,16 @@
--- ✅ RemoteEvent Logger for Duplication Testing
--- Logs all RemoteEvents and RemoteFunctions from ReplicatedStorage
+local containers = {
+    game:GetService("ReplicatedStorage"),
+    game:GetService("Players").LocalPlayer,
+    game:GetService("Workspace"),
+    game:GetService("StarterPlayer"),
+    game:GetService("StarterGui"),
+    game:GetService("Lighting")
+}
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-
--- ✅ GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "RemoteLoggerGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(0, 600, 0, 400)
-logBox.Position = UDim2.new(0, 20, 0, 20)
-logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextWrapped = true
-logBox.TextScaled = false
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
-logBox.Text = ""
-logBox.Parent = screenGui
-
-local function log(text)
-    logBox.Text = logBox.Text .. text .. "\n"
-end
-
--- ✅ Hook Remotes
-local function hookRemote(obj)
-    if obj:IsA("RemoteEvent") then
-        local name = obj:GetFullName()
-        log("📡 Hooked RemoteEvent: " .. name)
-        local original = obj.FireServer
-        obj.FireServer = function(self, ...)
-            log("🚀 Fired: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
-            return original(self, ...)
-        end
-    elseif obj:IsA("RemoteFunction") then
-        local name = obj:GetFullName()
-        log("📡 Hooked RemoteFunction: " .. name)
-        local original = obj.InvokeServer
-        obj.InvokeServer = function(self, ...)
-            log("🔁 Invoked: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
-            return original(self, ...)
+for _, container in ipairs(containers) do
+    for _, v in pairs(container:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            print("📦 Found:", v:GetFullName())
         end
     end
 end
-
--- ✅ Initial Hook
-for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-    hookRemote(v)
-end
-
--- ✅ Hook New Descendants
-ReplicatedStorage.DescendantAdded:Connect(function(obj)
-    task.wait()
-    hookRemote(obj)
-end)
-
-log("✅ Remote Logger Loaded. Press a pet-giving button or trigger in-game events.")
