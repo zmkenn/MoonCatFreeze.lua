@@ -1,70 +1,67 @@
--- ✅ GUI Spawner with Custom Pet Name, Age, and Weight
+-- ✅ RemoteEvent Logger for Duplication Testing
+-- Logs all RemoteEvents and RemoteFunctions from ReplicatedStorage
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local LocalPlayer = Players.LocalPlayer
-local RS = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
 
--- GUI Setup
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "PetSpawnerGUI"
+-- ✅ GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RemoteLoggerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 250, 0, 160)
-frame.Position = UDim2.new(0, 20, 0, 80)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Position = UDim2.new(0, 20, 0, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = ""
+logBox.Parent = screenGui
 
-local petBox = Instance.new("TextBox", frame)
-petBox.PlaceholderText = "Pet Name (e.g. Cat, Frog)"
-petBox.Size = UDim2.new(1, -20, 0, 30)
-petBox.Position = UDim2.new(0, 10, 0, 10)
+local function log(text)
+    logBox.Text = logBox.Text .. text .. "\n"
+end
 
-local ageBox = Instance.new("TextBox", frame)
-ageBox.PlaceholderText = "Age (whole number)"
-ageBox.Size = UDim2.new(1, -20, 0, 30)
-ageBox.Position = UDim2.new(0, 10, 0, 50)
-
-local kgBox = Instance.new("TextBox", frame)
-kgBox.PlaceholderText = "Weight (e.g. 3.25)"
-kgBox.Size = UDim2.new(1, -20, 0, 30)
-kgBox.Position = UDim2.new(0, 10, 0, 90)
-
-local spawnBtn = Instance.new("TextButton", frame)
-spawnBtn.Text = "Spawn Pet"
-spawnBtn.Size = UDim2.new(1, -20, 0, 30)
-spawnBtn.Position = UDim2.new(0, 10, 0, 130)
-spawnBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-
--- Spawn Logic
-spawnBtn.MouseButton1Click:Connect(function()
-    local petName = petBox.Text
-    local age = tonumber(ageBox.Text)
-    local weight = tonumber(kgBox.Text)
-
-    if not petName or not age or not weight then return end
-
-    local petModel = Workspace:FindFirstChild("PetsPhysical")
-    if petModel and petModel:FindFirstChild("PetMover") then
-        for _, model in pairs(petModel.PetMover:GetChildren()) do
-            if model.Name == petName then
-                local clone = model:Clone()
-                clone.Name = petName .. "_Clone"
-                clone.Parent = Workspace
-                clone:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(5, 0, 0))
-
-                -- Tag for display
-                local tag = Instance.new("BillboardGui", clone.PrimaryPart)
-                tag.Size = UDim2.new(0, 100, 0, 40)
-                tag.StudsOffset = Vector3.new(0, 3, 0)
-                tag.AlwaysOnTop = true
-                local text = Instance.new("TextLabel", tag)
-                text.Size = UDim2.new(1, 0, 1, 0)
-                text.BackgroundTransparency = 1
-                text.Text = "Age: " .. age .. ", Kg: " .. weight
-                text.TextColor3 = Color3.fromRGB(255, 255, 0)
-                text.TextScaled = true
-                return
-            end
+-- ✅ Hook Remotes
+local function hookRemote(obj)
+    if obj:IsA("RemoteEvent") then
+        local name = obj:GetFullName()
+        log("📡 Hooked RemoteEvent: " .. name)
+        obj.OnClientEvent:Connect(function(...)
+            log("📥 Received: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
+        end)
+        local original = obj.FireServer
+        obj.FireServer = function(self, ...)
+            log("🚀 Fired: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
+            return original(self, ...)
+        end
+    elseif obj:IsA("RemoteFunction") then
+        local name = obj:GetFullName()
+        log("📡 Hooked RemoteFunction: " .. name)
+        local original = obj.InvokeServer
+        obj.InvokeServer = function(self, ...)
+            log("🔁 Invoked: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
+            return original(self, ...)
         end
     end
+end
+
+-- ✅ Initial Hook
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+    hookRemote(v)
+end
+
+-- ✅ Hook New Descendants
+ReplicatedStorage.DescendantAdded:Connect(function(obj)
+    task.wait()
+    hookRemote(obj)
 end)
+
+log("✅ Remote Logger Loaded. Press a pet-giving button or trigger in-game events.")
