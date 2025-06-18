@@ -1,77 +1,64 @@
-local RunService = game:GetService("RunService")
+-- ✅ RemoteEvent Logger for Duplication Testing
+-- Logs all RemoteEvents and RemoteFunctions from ReplicatedStorage
 
-local frozenPetPositions = {}
-local targetPosition = Vector3.new(19.56, 3.11, 88.19)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
 
-local function freezePart(part)
-	-- Capture the CFrame **at the time freezePart is called**
-	local cf = part.CFrame
-	-- Print for debugging
-	print("Freezing part:", part.Name, "at", cf.Position)
-	
-	-- Connect a Heartbeat event to keep resetting position and zero velocity
-	RunService.Heartbeat:Connect(function()
-		if part and part.Parent then
-			part.CFrame = cf
-			part.Velocity = Vector3.zero
-			part.RotVelocity = Vector3.zero
-		end
-	end)
+-- ✅ GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "RemoteLoggerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Position = UDim2.new(0, 20, 0, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = ""
+logBox.Parent = screenGui
+
+local function log(text)
+    logBox.Text = logBox.Text .. text .. "\n"
 end
 
-local function freezeAndMoveCat(catModel)
-	local root = catModel.PrimaryPart or catModel:FindFirstChild("HumanoidRootPart") or catModel:FindFirstChildWhichIsA("BasePart")
-	if root then
-		root.CFrame = CFrame.new(targetPosition)
-		freezePart(root)
-		table.insert(frozenPetPositions, root.Position)
-		print("Moved and froze cat:", catModel.Name)
-	else
-		print("No root part found for cat:", catModel.Name)
-	end
+-- ✅ Hook Remotes
+local function hookRemote(obj)
+    if obj:IsA("RemoteEvent") then
+        local name = obj:GetFullName()
+        log("📡 Hooked RemoteEvent: " .. name)
+        local original = obj.FireServer
+        obj.FireServer = function(self, ...)
+            log("🚀 Fired: " .. name .. " | Args: " .. tostring(...))
+            return original(self, ...)
+        end
+    elseif obj:IsA("RemoteFunction") then
+        local name = obj:GetFullName()
+        log("📡 Hooked RemoteFunction: " .. name)
+        local original = obj.InvokeServer
+        obj.InvokeServer = function(self, ...)
+            log("🔁 Invoked: " .. name .. " | Args: " .. tostring(...))
+            return original(self, ...)
+        end
+    end
 end
 
-local function freezeAndMoveZone(zonePart)
-	zonePart.CFrame = CFrame.new(targetPosition)
-	freezePart(zonePart)
-	print("Moved and froze zone:", zonePart.Name)
+-- ✅ Initial Hook
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+    hookRemote(v)
 end
 
--- Freeze and move existing pets and zones
-for _, obj in pairs(workspace:GetDescendants()) do
-	if obj:IsA("Model") and obj.Name == "Cat" then
-		freezeAndMoveCat(obj)
-	elseif obj:IsA("BasePart") and obj.Name == "Zone" and obj.Parent and obj.Parent.Name == "PetMover" then
-		freezeAndMoveZone(obj)
-	end
-end
-
--- Watch for new pets or zones and freeze them at target
-workspace.DescendantAdded:Connect(function(child)
-	task.wait(0.2)
-	if child:IsA("Model") and child.Name == "Cat" then
-		freezeAndMoveCat(child)
-	elseif child:IsA("BasePart") and child.Name == "Zone" and child.Parent and child.Parent.Name == "PetMover" then
-		freezeAndMoveZone(child)
-	end
+-- ✅ Hook New Descendants
+ReplicatedStorage.DescendantAdded:Connect(function(obj)
+    task.wait()
+    hookRemote(obj)
 end)
 
--- Teleport SpottedEffect passives to nearest frozen pet
-workspace.ChildAdded:Connect(function(obj)
-	if obj:IsA("BasePart") and obj.Name == "SpottedEffect" then
-		task.wait()
-		if #frozenPetPositions > 0 then
-			local closest = frozenPetPositions[1]
-			local minDist = (obj.Position - closest).Magnitude
-			for _, pos in pairs(frozenPetPositions) do
-				local dist = (obj.Position - pos).Magnitude
-				if dist < minDist then
-					minDist = dist
-					closest = pos
-				end
-			end
-			obj.Position = closest
-			print("Moved SpottedEffect to:", closest)
-		end
-	end
-end)
+log("✅ Remote Logger Loaded. Press a pet-giving button or trigger in-game events.")
