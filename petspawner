@@ -1,66 +1,65 @@
-local RS = game:GetService("ReplicatedStorage")
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 
--- Billboard logger setup
+-- Setup billboard GUI for logs
 local part = Instance.new("Part")
-part.Name = "LoggerPart"
-part.Size = Vector3.new(4, 1, 1)
-part.Position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0) or Vector3.new(0, 10, 0)
+part.Name = "RemoteLogger"
 part.Anchored = true
 part.CanCollide = false
+part.Size = Vector3.new(4, 1, 1)
+part.Position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0) or Vector3.new(0, 10, 0)
 part.Parent = workspace
 
-local billboard = Instance.new("BillboardGui", part)
-billboard.Size = UDim2.new(0, 400, 0, 100)
-billboard.AlwaysOnTop = true
-billboard.StudsOffset = Vector3.new(0, 2, 0)
+local gui = Instance.new("BillboardGui", part)
+gui.Size = UDim2.new(0, 400, 0, 100)
+gui.AlwaysOnTop = true
+gui.StudsOffset = Vector3.new(0, 3, 0)
 
-local label = Instance.new("TextLabel", billboard)
+local label = Instance.new("TextLabel", gui)
 label.Size = UDim2.new(1, 0, 1, 0)
 label.BackgroundTransparency = 1
 label.TextColor3 = Color3.new(0, 1, 0)
 label.TextScaled = true
+label.Font = Enum.Font.Code
 label.Text = "Listening..."
 
--- Logging function
-local function updateLog(msg)
-    label.Text = msg
+-- Log function
+local function update(text)
+    label.Text = text
 end
 
-local function hookRemote(obj)
-    if obj:IsA("RemoteEvent") then
-        local name = obj:GetFullName()
-        local original = obj.FireServer
-        obj.FireServer = function(self, ...)
-            local args = {...}
-            local strArgs = ""
-            for i,v in ipairs(args) do
-                strArgs = strArgs .. tostring(i) .. ":" .. tostring(v) .. " "
+-- Universal hooker
+local function hookRemotes(folder)
+    for _, obj in ipairs(folder:GetDescendants()) do
+        if obj:IsA("RemoteEvent") then
+            local old = obj.FireServer
+            obj.FireServer = function(self, ...)
+                update("🚀 RemoteEvent: " .. obj:GetFullName())
+                return old(self, ...)
             end
-            updateLog("🚀 " .. name .. "\nArgs: " .. strArgs)
-            return original(self, ...)
-        end
-    elseif obj:IsA("RemoteFunction") then
-        local name = obj:GetFullName()
-        local original = obj.InvokeServer
-        obj.InvokeServer = function(self, ...)
-            local args = {...}
-            local strArgs = ""
-            for i,v in ipairs(args) do
-                strArgs = strArgs .. tostring(i) .. ":" .. tostring(v) .. " "
+        elseif obj:IsA("RemoteFunction") then
+            local old = obj.InvokeServer
+            obj.InvokeServer = function(self, ...)
+                update("🔁 RemoteFunction: " .. obj:GetFullName())
+                return old(self, ...)
             end
-            updateLog("🔁 " .. name .. "\nArgs: " .. strArgs)
-            return original(self, ...)
         end
     end
 end
 
-for _, obj in ipairs(RS:GetDescendants()) do
-    hookRemote(obj)
+-- Watch all services
+local services = {
+    game:GetService("ReplicatedStorage"),
+    game:GetService("Players"),
+    game:GetService("Workspace"),
+    game:GetService("Lighting"),
+    game:GetService("StarterGui"),
+    game:GetService("StarterPlayer"),
+    game:GetService("CoreGui"),
+    game:GetService("SoundService")
+}
+
+for _, service in ipairs(services) do
+    hookRemotes(service)
 end
 
-RS.DescendantAdded:Connect(function(obj)
-    hookRemote(obj)
-end)
-
-updateLog("✅ Ready. Do pet actions.")
+update("✅ Listening globally... do a pet action now")
