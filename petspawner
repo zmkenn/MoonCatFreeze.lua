@@ -1,50 +1,85 @@
--- 🚨 FINAL ATTEMPT: DUPLICATE PET (VISUAL + CLIENT-SIDE INVENTORY + RANDOMIZED TO AVOID DELETION)
--- ⚠️ This is a CLIENT-SIDE FAKE visual duplicate. It will NOT persist or be seen by others.
--- ✅ Adds pet model to your plot visually with randomized weight/age
--- ❗ Requires Delta/VEGA X, and you must run this while the original pet is on your plot
+-- ✅ GUI Pet Spawner with Custom Age & Weight for Grow a Garden
 
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
--- ✅ SETTINGS (change name to pet you want to duplicate)
-local petName = "Raccoon" -- or "MoonCat", etc.
-local randomAge = math.random(1, 10) -- Age must be whole number
-local randomWeight = tonumber(string.format("%.2f", math.random(100, 999) / 100)) -- e.g. 5.43
+-- ✅ GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PetSpawnerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- ✅ Find the pet in the Workspace
-local function findPetModel()
-    for _, pet in pairs(Workspace.PetsPhysical:GetChildren()) do
-        if pet.Name == petName and pet:FindFirstChild("Torso") then
-            return pet
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 300, 0, 220)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.BorderSizePixel = 0
+frame.Parent = screenGui
+
+local petNameBox = Instance.new("TextBox")
+petNameBox.PlaceholderText = "Pet Name (e.g., Raccoon)"
+petNameBox.Size = UDim2.new(1, -20, 0, 30)
+petNameBox.Position = UDim2.new(0, 10, 0, 10)
+petNameBox.Parent = frame
+
+local ageBox = Instance.new("TextBox")
+ageBox.PlaceholderText = "Age (Whole Number)"
+ageBox.Size = UDim2.new(1, -20, 0, 30)
+ageBox.Position = UDim2.new(0, 10, 0, 50)
+ageBox.Parent = frame
+
+local weightBox = Instance.new("TextBox")
+weightBox.PlaceholderText = "Weight (Decimal)"
+weightBox.Size = UDim2.new(1, -20, 0, 30)
+weightBox.Position = UDim2.new(0, 10, 0, 90)
+weightBox.Parent = frame
+
+local spawnButton = Instance.new("TextButton")
+spawnButton.Text = "Spawn Pet"
+spawnButton.Size = UDim2.new(1, -20, 0, 40)
+spawnButton.Position = UDim2.new(0, 10, 0, 140)
+spawnButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+spawnButton.Parent = frame
+
+-- ✅ Pet Cloner (Client-side only visual clone)
+local function spawnPet(name, age, weight)
+    local original = workspace:FindFirstChild("PetsPhysical")
+    if not original then return end
+    for _, pet in pairs(original:GetChildren()) do
+        if pet.Name:lower():match(name:lower()) then
+            local clone = pet:Clone()
+            clone.Parent = workspace
+            clone:SetPrimaryPartCFrame(pet:GetPrimaryPartCFrame() * CFrame.new(3, 0, 0))
+
+            -- Attach fake values visually
+            local tag = Instance.new("BillboardGui")
+            tag.Size = UDim2.new(0, 200, 0, 50)
+            tag.StudsOffset = Vector3.new(0, 3, 0)
+            tag.Adornee = clone.PrimaryPart
+            tag.AlwaysOnTop = true
+            tag.Parent = clone
+
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextStrokeTransparency = 0.5
+            label.TextScaled = true
+            label.Font = Enum.Font.SourceSansBold
+            label.Text = "Age: "..age.." | Kg: "..weight
+            label.Parent = tag
         end
     end
 end
 
--- ✅ Clone and place the pet
-local function duplicatePet()
-    local originalPet = findPetModel()
-    if not originalPet then
-        warn("❌ Pet model not found in workspace!")
-        return
+-- ✅ Button Click
+spawnButton.MouseButton1Click:Connect(function()
+    local name = petNameBox.Text
+    local age = tonumber(ageBox.Text)
+    local kg = tonumber(weightBox.Text)
+    if name ~= "" and age and kg then
+        spawnPet(name, age, kg)
     end
-
-    local clone = originalPet:Clone()
-    clone.Name = petName .. "_Clone"
-    clone.Parent = Workspace.PetsPhysical
-    clone:SetPrimaryPartCFrame(originalPet:GetPrimaryPartCFrame() * CFrame.new(3, 0, 3))
-
-    -- Add fake values to try avoid deletion
-    if clone:FindFirstChild("Age") then
-        clone.Age.Value = randomAge
-    end
-    if clone:FindFirstChild("Weight") then
-        clone.Weight.Value = randomWeight
-    end
-
-    print("✅ Fake clone spawned with Age:", randomAge, "Weight:", randomWeight)
-end
-
--- ✅ Execute
-duplicatePet()
+end)
