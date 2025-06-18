@@ -1,16 +1,17 @@
--- ✅ Pet Duplication Test via RemoteEvent (Delta Compatible)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local remote = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DataStream")
 
--- 📌 Define the pet data (edit if needed)
-local petName = "cat"
-local age = 4
-local weight = math.random(300, 999) / 100  -- Random weight like 3.00 to 9.99 to avoid deletion
+remote.OnClientEvent:Connect(function(...)
+    print("📨 Server sent:", ...)
+end)
 
--- 🧪 Fire the remote with sample data
-remote:FireServer({
-    ["type"] = "SpawnPet",
-    ["pet"] = petName,
-    ["age"] = age,
-    ["weight"] = weight
-})
+local oldFireServer = remote.FireServer
+remote.FireServer = function(self, ...)
+    print("🚀 FireServer called with:")
+    for i, v in pairs({...}) do
+        print(i, v)
+    end
+    return oldFireServer(self, ...)
+end
+
+print("✅ Logger attached. Now go manually spawn a pet in the game.")
