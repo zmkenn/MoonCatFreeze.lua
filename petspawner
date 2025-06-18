@@ -1,55 +1,47 @@
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "EventLoggerUI"
-gui.Parent = player:WaitForChild("PlayerGui")
-
-local logFrame = Instance.new("ScrollingFrame", gui)
-logFrame.Size = UDim2.new(0, 600, 0, 300)
-logFrame.Position = UDim2.new(0, 20, 0, 20)
-logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-logFrame.CanvasSize = UDim2.new(0, 0, 10, 0)
-logFrame.ScrollBarThickness = 8
-
-local layout = Instance.new("UIListLayout", logFrame)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-
-local function log(message)
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 0, 20)
-	label.Text = "📡 " .. message
-	label.TextColor3 = Color3.fromRGB(0, 255, 0)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.Code
-	label.TextSize = 14
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = logFrame
+-- 🐸 Clone "Frog" and assign unique age & weight to bypass dupe deletion
+local parentFolder = workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:FindFirstChild("PetMover")
+if not parentFolder then
+    warn("❌ Cannot find PetsPhysical.PetMover")
+    return
 end
 
-local function hook(obj)
-	if obj:IsA("RemoteEvent") then
-		local name = obj:GetFullName()
-		log("Hooked RemoteEvent: " .. name)
-		obj.OnClientEvent:Connect(function(...)
-			log("🔥 Event Triggered: " .. name)
-		end)
-	elseif obj:IsA("RemoteFunction") then
-		local name = obj:GetFullName()
-		log("Hooked RemoteFunction: " .. name)
-	end
+local function clonePet(originalName, newAge, newWeight)
+    for _, pet in pairs(parentFolder:GetChildren()) do
+        if pet.Name == originalName then
+            local clone = pet:Clone()
+            clone.Name = originalName .. "_Clone"
+
+            -- Try setting Age and Weight inside known ObjectValues or Attributes
+            pcall(function()
+                if clone:FindFirstChild("Age") then
+                    clone.Age.Value = newAge
+                elseif clone:FindFirstChildWhichIsA("NumberValue") then
+                    for _, v in pairs(clone:GetChildren()) do
+                        if v:IsA("NumberValue") and v.Name:lower():find("age") then
+                            v.Value = newAge
+                        end
+                    end
+                end
+            end)
+
+            pcall(function()
+                if clone:FindFirstChild("Weight") then
+                    clone.Weight.Value = newWeight
+                elseif clone:FindFirstChildWhichIsA("NumberValue") then
+                    for _, v in pairs(clone:GetChildren()) do
+                        if v:IsA("NumberValue") and v.Name:lower():find("weight") then
+                            v.Value = newWeight
+                        end
+                    end
+                end
+            end)
+
+            clone.Parent = parentFolder
+            print("✅ Cloned " .. originalName .. " with Age " .. newAge .. " and Weight " .. newWeight)
+            return
+        end
+    end
+    warn("❌ Original pet not found in PetMover")
 end
 
--- Hook all existing
-for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-	pcall(hook, v)
-end
-
--- Hook new ones
-ReplicatedStorage.DescendantAdded:Connect(function(v)
-	task.wait()
-	pcall(hook, v)
-end)
-
-log("✅ Logger active. Do a pet action now.")
+clonePet("Frog", 4.1, 4.56) -- Slightly different to avoid deletion
