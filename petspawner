@@ -1,51 +1,8 @@
-local workspace = game:GetService("Workspace")
-local player = game.Players.LocalPlayer
+local args = {
+    "givePet", -- This might be different depending on your logger!
+    "Frog",    -- Pet name
+    6,         -- Age (integer)
+    4.29       -- Weight (decimal)
+}
 
--- GUI Setup
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "PetViewerGUI"
-
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 500, 0, 400)
-frame.Position = UDim2.new(0, 100, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30,30,30)
-
-local title = Instance.new("TextLabel", frame)
-title.Text = "📦 Detected Pets in Workspace"
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundColor3 = Color3.fromRGB(50,50,50)
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Font = Enum.Font.Code
-title.TextSize = 20
-
-local scroll = Instance.new("ScrollingFrame", frame)
-scroll.Size = UDim2.new(1,0,1,-40)
-scroll.Position = UDim2.new(0,0,0,40)
-scroll.CanvasSize = UDim2.new(0,0,0,0)
-scroll.ScrollBarThickness = 8
-scroll.BackgroundTransparency = 1
-
--- Detect & list pets
-local function scanPets()
-    scroll:ClearAllChildren()
-    local y = 0
-
-    for _, pet in pairs(workspace:GetDescendants()) do
-        if pet:IsA("Model") and pet:FindFirstChild("Torso") then
-            local label = Instance.new("TextLabel", scroll)
-            label.Size = UDim2.new(1, -10, 0, 30)
-            label.Position = UDim2.new(0, 5, 0, y)
-            label.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-            label.TextColor3 = Color3.fromRGB(0, 255, 0)
-            label.Font = Enum.Font.Code
-            label.TextSize = 14
-            label.Text = pet.Name .. " (" .. pet:GetFullName() .. ")"
-            label.TextXAlignment = Enum.TextXAlignment.Left
-            y = y + 35
-        end
-    end
-
-    scroll.CanvasSize = UDim2.new(0, 0, 0, y)
-end
-
-scanPets()
+game:GetService("ReplicatedStorage").GameEvents.DataStream:FireServer(unpack(args))
