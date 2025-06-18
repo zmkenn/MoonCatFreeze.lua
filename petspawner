@@ -1,16 +1,53 @@
-local containers = {
-    game:GetService("ReplicatedStorage"),
-    game:GetService("Players").LocalPlayer,
-    game:GetService("Workspace"),
-    game:GetService("StarterPlayer"),
-    game:GetService("StarterGui"),
-    game:GetService("Lighting")
-}
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
 
-for _, container in ipairs(containers) do
-    for _, v in pairs(container:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            print("📦 Found:", v:GetFullName())
+-- Create GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "RemoteLogger"
+gui.ResetOnSpawn = false
+
+local logLabel = Instance.new("TextLabel", gui)
+logLabel.Size = UDim2.new(0, 600, 0, 400)
+logLabel.Position = UDim2.new(0, 20, 0, 20)
+logLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+logLabel.TextXAlignment = Enum.TextXAlignment.Left
+logLabel.TextYAlignment = Enum.TextYAlignment.Top
+logLabel.Font = Enum.Font.Code
+logLabel.TextSize = 14
+logLabel.TextWrapped = true
+logLabel.TextScaled = false
+logLabel.Text = "🔍 Remote Logger Ready...\n"
+
+-- Logger Function
+local function log(text)
+    logLabel.Text = logLabel.Text .. text .. "\n"
+end
+
+-- Hook Remotes in Descendants
+local function hook(obj)
+    if obj:IsA("RemoteEvent") then
+        local original = obj.FireServer
+        obj.FireServer = function(self, ...)
+            log("🚀 RemoteEvent: " .. obj:GetFullName())
+            return original(self, ...)
+        end
+    elseif obj:IsA("RemoteFunction") then
+        local original = obj.InvokeServer
+        obj.InvokeServer = function(self, ...)
+            log("📞 RemoteFunction: " .. obj:GetFullName())
+            return original(self, ...)
         end
     end
 end
+
+-- Hook all existing
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+    hook(v)
+end
+
+-- Watch new remotes
+ReplicatedStorage.DescendantAdded:Connect(function(v)
+    hook(v)
+end)
