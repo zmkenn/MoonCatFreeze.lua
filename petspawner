@@ -36,7 +36,7 @@ local function hookRemote(obj)
         log("📡 Hooked RemoteEvent: " .. name)
         local original = obj.FireServer
         obj.FireServer = function(self, ...)
-            log("🚀 Fired: " .. name .. " | Args: " .. tostring(...))
+            log("🚀 Fired: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
             return original(self, ...)
         end
     elseif obj:IsA("RemoteFunction") then
@@ -44,7 +44,7 @@ local function hookRemote(obj)
         log("📡 Hooked RemoteFunction: " .. name)
         local original = obj.InvokeServer
         obj.InvokeServer = function(self, ...)
-            log("🔁 Invoked: " .. name .. " | Args: " .. tostring(...))
+            log("🔁 Invoked: " .. name .. " | Args: " .. table.concat(table.pack(...), ", "))
             return original(self, ...)
         end
     end
