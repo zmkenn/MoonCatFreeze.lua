@@ -1,11 +1,52 @@
-local mt = getrawmetatable(game)
-local old = mt.__namecall
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if method == "FireServer" or method == "InvokeServer" then
-        print("🔗", self:GetFullName(), ...)
+-- 🔍 Delta-Compatible Remote Detector
+local services = {game:GetService("ReplicatedStorage"), game:GetService("Workspace"), game:GetService("StarterPlayer")}
+local player = game:GetService("Players").LocalPlayer
+
+-- Create GUI to show logs
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "RemoteSpyDelta"
+
+local logBox = Instance.new("TextLabel", screenGui)
+logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Position = UDim2.new(0, 10, 0, 10)
+logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.TextWrapped = true
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.Text = "🔍 Remote Logger Ready...\n"
+
+-- Log helper
+local function log(text)
+    logBox.Text = logBox.Text .. text .. "\n"
+end
+
+-- Hook into new descendants
+local function hookRemote(remote)
+    local full = remote:GetFullName()
+    if remote:IsA("RemoteEvent") then
+        remote.OnClientEvent:Connect(function(...)
+            log("📡 RemoteEvent Triggered: " .. full)
+        end)
+    elseif remote:IsA("RemoteFunction") then
+        remote.OnClientInvoke = function(...)
+            log("📡 RemoteFunction Invoked: " .. full)
+        end
     end
-    return old(self, ...)
-end)
-setreadonly(mt, true)
+end
+
+-- Monitor new remotes as they appear
+for _, service in ipairs(services) do
+    for _, item in ipairs(service:GetDescendants()) do
+        if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
+            hookRemote(item)
+        end
+    end
+    service.DescendantAdded:Connect(function(obj)
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            hookRemote(obj)
+        end
+    end)
+end
