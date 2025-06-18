@@ -1,52 +1,66 @@
--- 🔍 Delta-Compatible Remote Detector
-local services = {game:GetService("ReplicatedStorage"), game:GetService("Workspace"), game:GetService("StarterPlayer")}
+-- 🟢 GUI Remote Logger (Delta Emulator Compatible)
 local player = game:GetService("Players").LocalPlayer
 
--- Create GUI to show logs
+-- GUI Setup
 local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-screenGui.Name = "RemoteSpyDelta"
+screenGui.Name = "DeltaRemoteLogger"
 
-local logBox = Instance.new("TextLabel", screenGui)
-logBox.Size = UDim2.new(0, 600, 0, 400)
-logBox.Position = UDim2.new(0, 10, 0, 10)
-logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
-logBox.TextWrapped = true
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.Text = "🔍 Remote Logger Ready...\n"
+local frame = Instance.new("Frame", screenGui)
+frame.Size = UDim2.new(0, 500, 0, 300)
+frame.Position = UDim2.new(0, 20, 0, 20)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BorderSizePixel = 0
 
--- Log helper
+local scrollingText = Instance.new("TextLabel", frame)
+scrollingText.Size = UDim2.new(1, 0, 1, 0)
+scrollingText.BackgroundTransparency = 1
+scrollingText.TextColor3 = Color3.fromRGB(0, 255, 0)
+scrollingText.TextXAlignment = Enum.TextXAlignment.Left
+scrollingText.TextYAlignment = Enum.TextYAlignment.Top
+scrollingText.Font = Enum.Font.Code
+scrollingText.TextSize = 14
+scrollingText.Text = "🔍 Remote Logger Ready...\n"
+scrollingText.TextWrapped = true
+scrollingText.TextScaled = false
+scrollingText.ClipsDescendants = true
+
+-- Logging Function
 local function log(text)
-    logBox.Text = logBox.Text .. text .. "\n"
+	scrollingText.Text = scrollingText.Text .. text .. "\n"
 end
 
--- Hook into new descendants
+-- Hook function
 local function hookRemote(remote)
-    local full = remote:GetFullName()
-    if remote:IsA("RemoteEvent") then
-        remote.OnClientEvent:Connect(function(...)
-            log("📡 RemoteEvent Triggered: " .. full)
-        end)
-    elseif remote:IsA("RemoteFunction") then
-        remote.OnClientInvoke = function(...)
-            log("📡 RemoteFunction Invoked: " .. full)
-        end
-    end
+	local path = remote:GetFullName()
+	if remote:IsA("RemoteEvent") then
+		remote.OnClientEvent:Connect(function(...)
+			log("📡 RemoteEvent: " .. path)
+		end)
+	elseif remote:IsA("RemoteFunction") then
+		remote.OnClientInvoke = function(...)
+			log("📡 RemoteFunction: " .. path)
+		end
+	end
 end
 
--- Monitor new remotes as they appear
-for _, service in ipairs(services) do
-    for _, item in ipairs(service:GetDescendants()) do
-        if item:IsA("RemoteEvent") or item:IsA("RemoteFunction") then
-            hookRemote(item)
-        end
-    end
-    service.DescendantAdded:Connect(function(obj)
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            hookRemote(obj)
-        end
-    end)
+-- Monitor services
+local servicesToCheck = {
+	game:GetService("ReplicatedStorage"),
+	game:GetService("Workspace"),
+	game:GetService("StarterPlayer")
+}
+
+for _, service in ipairs(servicesToCheck) do
+	for _, desc in ipairs(service:GetDescendants()) do
+		if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
+			hookRemote(desc)
+		end
+	end
+	service.DescendantAdded:Connect(function(obj)
+		if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+			hookRemote(obj)
+		end
+	end)
 end
+
+log("✅ Logger loaded. Trigger any pet action to detect.")
