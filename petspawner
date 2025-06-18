@@ -1,17 +1,22 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local remote = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DataStream")
-
-remote.OnClientEvent:Connect(function(...)
-    print("📨 Server sent:", ...)
-end)
-
-local oldFireServer = remote.FireServer
-remote.FireServer = function(self, ...)
-    print("🚀 FireServer called with:")
-    for i, v in pairs({...}) do
-        print(i, v)
+for _, service in ipairs({"ReplicatedStorage", "Workspace"}) do
+    for _, obj in ipairs(game:GetService(service):GetDescendants()) do
+        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+            local original
+            if obj:IsA("RemoteEvent") then
+                original = obj.FireServer
+                obj.FireServer = function(self, ...)
+                    print("📡 RemoteEvent:", obj:GetFullName(), "Args:", ...)
+                    return original(self, ...)
+                end
+            elseif obj:IsA("RemoteFunction") then
+                original = obj.InvokeServer
+                obj.InvokeServer = function(self, ...)
+                    print("🔁 RemoteFunction:", obj:GetFullName(), "Args:", ...)
+                    return original(self, ...)
+                end
+            end
+        end
     end
-    return oldFireServer(self, ...)
 end
 
-print("✅ Logger attached. Now go manually spawn a pet in the game.")
+print("✅ Universal Hook loaded. Try manually spawning any pet.")
