@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local remote = ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DataStream")
 
 -- 📌 Define the pet data (edit if needed)
-local petName = "Raccoon"
+local petName = "Cat"
 local age = 4
 local weight = math.random(300, 999) / 100  -- Random weight like 3.00 to 9.99 to avoid deletion
 
