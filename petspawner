@@ -1,8 +1,49 @@
-local args = {
-    "givePet", -- This might be different depending on your logger!
-    "Frog",    -- Pet name
-    6,         -- Age (integer)
-    4.29       -- Weight (decimal)
-}
+local RS = game:GetService("ReplicatedStorage")
+local player = game:GetService("Players").LocalPlayer
 
-game:GetService("ReplicatedStorage").GameEvents.DataStream:FireServer(unpack(args))
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "RemoteLogger"
+
+local box = Instance.new("TextLabel", gui)
+box.Size = UDim2.new(0, 600, 0, 400)
+box.Position = UDim2.new(0, 10, 0, 10)
+box.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+box.TextColor3 = Color3.fromRGB(0, 255, 0)
+box.TextXAlignment = Enum.TextXAlignment.Left
+box.TextYAlignment = Enum.TextYAlignment.Top
+box.Font = Enum.Font.Code
+box.TextSize = 14
+box.TextWrapped = true
+box.Text = "✅ Logger Ready\n"
+
+local function log(txt)
+    box.Text = box.Text .. txt .. "\n"
+end
+
+local function hookRemote(obj)
+    if obj:IsA("RemoteEvent") then
+        local fullName = obj:GetFullName()
+        local original = obj.FireServer
+        obj.FireServer = function(self, ...)
+            local args = {...}
+            local argText = ""
+            for i, v in ipairs(args) do
+                argText = argText .. "[" .. i .. "] = " .. tostring(v) .. "  "
+            end
+            log("🚀 Fired: " .. fullName .. " | Args: " .. argText)
+            return original(self, ...)
+        end
+    end
+end
+
+-- Hook existing and new
+for _, v in pairs(RS:GetDescendants()) do
+    hookRemote(v)
+end
+
+RS.DescendantAdded:Connect(function(obj)
+    task.wait()
+    hookRemote(obj)
+end)
+
+log("📡 Logger initialized. Do an action (like spawning a pet).")
