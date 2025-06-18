@@ -1,22 +1,49 @@
-for _, service in ipairs({"ReplicatedStorage", "Workspace"}) do
-    for _, obj in ipairs(game:GetService(service):GetDescendants()) do
-        if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-            local original
-            if obj:IsA("RemoteEvent") then
-                original = obj.FireServer
-                obj.FireServer = function(self, ...)
-                    print("📡 RemoteEvent:", obj:GetFullName(), "Args:", ...)
-                    return original(self, ...)
-                end
-            elseif obj:IsA("RemoteFunction") then
-                original = obj.InvokeServer
-                obj.InvokeServer = function(self, ...)
-                    print("🔁 RemoteFunction:", obj:GetFullName(), "Args:", ...)
-                    return original(self, ...)
-                end
-            end
-        end
-    end
+-- ✅ Universal GUI Logger for RemoteEvents and Functions
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+screenGui.Name = "UniversalLoggerGUI"
+screenGui.ResetOnSpawn = false
+
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Position = UDim2.new(0, 20, 0, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = "📡 Listening for RemoteEvents...\n"
+logBox.Parent = screenGui
+
+-- Append log
+local function log(text)
+	logBox.Text = logBox.Text .. text .. "\n"
 end
 
-print("✅ Universal Hook loaded. Try manually spawning any pet.")
+-- Hook all RemoteEvents and RemoteFunctions
+for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+	if v:IsA("RemoteEvent") then
+		local original = v.FireServer
+		v.FireServer = function(self, ...)
+			local args = {...}
+			log("🚀 RemoteEvent: " .. self:GetFullName() .. " | Args: " .. tostring(args[1]))
+			return original(self, ...)
+		end
+	elseif v:IsA("RemoteFunction") then
+		local original = v.InvokeServer
+		v.InvokeServer = function(self, ...)
+			local args = {...}
+			log("🔁 RemoteFunction: " .. self:GetFullName() .. " | Args: " .. tostring(args[1]))
+			return original(self, ...)
+		end
+	end
+end
+
+log("✅ Logger Ready. Trigger a pet and watch this box.")
