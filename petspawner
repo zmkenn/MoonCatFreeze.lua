@@ -1,85 +1,70 @@
--- ✅ GUI Pet Spawner with Custom Age & Weight for Grow a Garden
-
+-- ✅ GUI Spawner with Custom Pet Name, Age, and Weight
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local RS = game:GetService("ReplicatedStorage")
 
--- ✅ GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PetSpawnerGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
+-- GUI Setup
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "PetSpawnerGUI"
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 220)
-frame.Position = UDim2.new(0, 20, 0, 20)
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 250, 0, 160)
+frame.Position = UDim2.new(0, 20, 0, 80)
 frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 frame.BorderSizePixel = 0
-frame.Parent = screenGui
 
-local petNameBox = Instance.new("TextBox")
-petNameBox.PlaceholderText = "Pet Name (e.g., Raccoon)"
-petNameBox.Size = UDim2.new(1, -20, 0, 30)
-petNameBox.Position = UDim2.new(0, 10, 0, 10)
-petNameBox.Parent = frame
+local petBox = Instance.new("TextBox", frame)
+petBox.PlaceholderText = "Pet Name (e.g. Cat, Frog)"
+petBox.Size = UDim2.new(1, -20, 0, 30)
+petBox.Position = UDim2.new(0, 10, 0, 10)
 
-local ageBox = Instance.new("TextBox")
-ageBox.PlaceholderText = "Age (Whole Number)"
+local ageBox = Instance.new("TextBox", frame)
+ageBox.PlaceholderText = "Age (whole number)"
 ageBox.Size = UDim2.new(1, -20, 0, 30)
 ageBox.Position = UDim2.new(0, 10, 0, 50)
-ageBox.Parent = frame
 
-local weightBox = Instance.new("TextBox")
-weightBox.PlaceholderText = "Weight (Decimal)"
-weightBox.Size = UDim2.new(1, -20, 0, 30)
-weightBox.Position = UDim2.new(0, 10, 0, 90)
-weightBox.Parent = frame
+local kgBox = Instance.new("TextBox", frame)
+kgBox.PlaceholderText = "Weight (e.g. 3.25)"
+kgBox.Size = UDim2.new(1, -20, 0, 30)
+kgBox.Position = UDim2.new(0, 10, 0, 90)
 
-local spawnButton = Instance.new("TextButton")
-spawnButton.Text = "Spawn Pet"
-spawnButton.Size = UDim2.new(1, -20, 0, 40)
-spawnButton.Position = UDim2.new(0, 10, 0, 140)
-spawnButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-spawnButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-spawnButton.Parent = frame
+local spawnBtn = Instance.new("TextButton", frame)
+spawnBtn.Text = "Spawn Pet"
+spawnBtn.Size = UDim2.new(1, -20, 0, 30)
+spawnBtn.Position = UDim2.new(0, 10, 0, 130)
+spawnBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
 
--- ✅ Pet Cloner (Client-side only visual clone)
-local function spawnPet(name, age, weight)
-    local original = workspace:FindFirstChild("PetsPhysical")
-    if not original then return end
-    for _, pet in pairs(original:GetChildren()) do
-        if pet.Name:lower():match(name:lower()) then
-            local clone = pet:Clone()
-            clone.Parent = workspace
-            clone:SetPrimaryPartCFrame(pet:GetPrimaryPartCFrame() * CFrame.new(3, 0, 0))
-
-            -- Attach fake values visually
-            local tag = Instance.new("BillboardGui")
-            tag.Size = UDim2.new(0, 200, 0, 50)
-            tag.StudsOffset = Vector3.new(0, 3, 0)
-            tag.Adornee = clone.PrimaryPart
-            tag.AlwaysOnTop = true
-            tag.Parent = clone
-
-            local label = Instance.new("TextLabel")
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.BackgroundTransparency = 1
-            label.TextColor3 = Color3.fromRGB(255, 255, 255)
-            label.TextStrokeTransparency = 0.5
-            label.TextScaled = true
-            label.Font = Enum.Font.SourceSansBold
-            label.Text = "Age: "..age.." | Kg: "..weight
-            label.Parent = tag
-        end
-    end
-end
-
--- ✅ Button Click
-spawnButton.MouseButton1Click:Connect(function()
-    local name = petNameBox.Text
+-- Spawn Logic
+spawnBtn.MouseButton1Click:Connect(function()
+    local petName = petBox.Text
     local age = tonumber(ageBox.Text)
-    local kg = tonumber(weightBox.Text)
-    if name ~= "" and age and kg then
-        spawnPet(name, age, kg)
+    local weight = tonumber(kgBox.Text)
+
+    if not petName or not age or not weight then return end
+
+    local petModel = Workspace:FindFirstChild("PetsPhysical")
+    if petModel and petModel:FindFirstChild("PetMover") then
+        for _, model in pairs(petModel.PetMover:GetChildren()) do
+            if model.Name == petName then
+                local clone = model:Clone()
+                clone.Name = petName .. "_Clone"
+                clone.Parent = Workspace
+                clone:SetPrimaryPartCFrame(LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(5, 0, 0))
+
+                -- Tag for display
+                local tag = Instance.new("BillboardGui", clone.PrimaryPart)
+                tag.Size = UDim2.new(0, 100, 0, 40)
+                tag.StudsOffset = Vector3.new(0, 3, 0)
+                tag.AlwaysOnTop = true
+                local text = Instance.new("TextLabel", tag)
+                text.Size = UDim2.new(1, 0, 1, 0)
+                text.BackgroundTransparency = 1
+                text.Text = "Age: " .. age .. ", Kg: " .. weight
+                text.TextColor3 = Color3.fromRGB(255, 255, 0)
+                text.TextScaled = true
+                return
+            end
+        end
     end
 end)
