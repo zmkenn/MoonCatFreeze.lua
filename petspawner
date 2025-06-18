@@ -2,52 +2,54 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 
--- Create GUI
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "RemoteLogger"
-gui.ResetOnSpawn = false
+local gui = Instance.new("ScreenGui")
+gui.Name = "EventLoggerUI"
+gui.Parent = player:WaitForChild("PlayerGui")
 
-local logLabel = Instance.new("TextLabel", gui)
-logLabel.Size = UDim2.new(0, 600, 0, 400)
-logLabel.Position = UDim2.new(0, 20, 0, 20)
-logLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-logLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-logLabel.TextXAlignment = Enum.TextXAlignment.Left
-logLabel.TextYAlignment = Enum.TextYAlignment.Top
-logLabel.Font = Enum.Font.Code
-logLabel.TextSize = 14
-logLabel.TextWrapped = true
-logLabel.TextScaled = false
-logLabel.Text = "🔍 Remote Logger Ready...\n"
+local logFrame = Instance.new("ScrollingFrame", gui)
+logFrame.Size = UDim2.new(0, 600, 0, 300)
+logFrame.Position = UDim2.new(0, 20, 0, 20)
+logFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+logFrame.CanvasSize = UDim2.new(0, 0, 10, 0)
+logFrame.ScrollBarThickness = 8
 
--- Logger Function
-local function log(text)
-    logLabel.Text = logLabel.Text .. text .. "\n"
+local layout = Instance.new("UIListLayout", logFrame)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local function log(message)
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 0, 20)
+	label.Text = "📡 " .. message
+	label.TextColor3 = Color3.fromRGB(0, 255, 0)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.Code
+	label.TextSize = 14
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = logFrame
 end
 
--- Hook Remotes in Descendants
 local function hook(obj)
-    if obj:IsA("RemoteEvent") then
-        local original = obj.FireServer
-        obj.FireServer = function(self, ...)
-            log("🚀 RemoteEvent: " .. obj:GetFullName())
-            return original(self, ...)
-        end
-    elseif obj:IsA("RemoteFunction") then
-        local original = obj.InvokeServer
-        obj.InvokeServer = function(self, ...)
-            log("📞 RemoteFunction: " .. obj:GetFullName())
-            return original(self, ...)
-        end
-    end
+	if obj:IsA("RemoteEvent") then
+		local name = obj:GetFullName()
+		log("Hooked RemoteEvent: " .. name)
+		obj.OnClientEvent:Connect(function(...)
+			log("🔥 Event Triggered: " .. name)
+		end)
+	elseif obj:IsA("RemoteFunction") then
+		local name = obj:GetFullName()
+		log("Hooked RemoteFunction: " .. name)
+	end
 end
 
 -- Hook all existing
 for _, v in pairs(ReplicatedStorage:GetDescendants()) do
-    hook(v)
+	pcall(hook, v)
 end
 
--- Watch new remotes
+-- Hook new ones
 ReplicatedStorage.DescendantAdded:Connect(function(v)
-    hook(v)
+	task.wait()
+	pcall(hook, v)
 end)
+
+log("✅ Logger active. Do a pet action now.")
