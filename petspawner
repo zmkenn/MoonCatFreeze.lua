@@ -1,65 +1,13 @@
-local player = game:GetService("Players").LocalPlayer
+local CmdrFunction = game:GetService("ReplicatedStorage"):WaitForChild("CmdrClient"):WaitForChild("CmdrFunction")
 
--- Setup billboard GUI for logs
-local part = Instance.new("Part")
-part.Name = "RemoteLogger"
-part.Anchored = true
-part.CanCollide = false
-part.Size = Vector3.new(4, 1, 1)
-part.Position = player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0) or Vector3.new(0, 10, 0)
-part.Parent = workspace
-
-local gui = Instance.new("BillboardGui", part)
-gui.Size = UDim2.new(0, 400, 0, 100)
-gui.AlwaysOnTop = true
-gui.StudsOffset = Vector3.new(0, 3, 0)
-
-local label = Instance.new("TextLabel", gui)
-label.Size = UDim2.new(1, 0, 1, 0)
-label.BackgroundTransparency = 1
-label.TextColor3 = Color3.new(0, 1, 0)
-label.TextScaled = true
-label.Font = Enum.Font.Code
-label.Text = "Listening..."
-
--- Log function
-local function update(text)
-    label.Text = text
-end
-
--- Universal hooker
-local function hookRemotes(folder)
-    for _, obj in ipairs(folder:GetDescendants()) do
-        if obj:IsA("RemoteEvent") then
-            local old = obj.FireServer
-            obj.FireServer = function(self, ...)
-                update("🚀 RemoteEvent: " .. obj:GetFullName())
-                return old(self, ...)
-            end
-        elseif obj:IsA("RemoteFunction") then
-            local old = obj.InvokeServer
-            obj.InvokeServer = function(self, ...)
-                update("🔁 RemoteFunction: " .. obj:GetFullName())
-                return old(self, ...)
-            end
-        end
+local oldInvoke
+oldInvoke = hookfunction(CmdrFunction.InvokeServer, function(self, ...)
+    print("[🔍 CmdrFunction Triggered]")
+    local args = {...}
+    for i, v in ipairs(args) do
+        print("Arg[" .. i .. "]:", v)
     end
-end
+    return oldInvoke(self, ...)
+end)
 
--- Watch all services
-local services = {
-    game:GetService("ReplicatedStorage"),
-    game:GetService("Players"),
-    game:GetService("Workspace"),
-    game:GetService("Lighting"),
-    game:GetService("StarterGui"),
-    game:GetService("StarterPlayer"),
-    game:GetService("CoreGui"),
-    game:GetService("SoundService")
-}
-
-for _, service in ipairs(services) do
-    hookRemotes(service)
-end
-
-update("✅ Listening globally... do a pet action now")
+print("✅ Hooked CmdrFunction - waiting for triggers...")
