@@ -1,41 +1,11 @@
--- 🐸 Frog Cloner (integer Age, decimal Weight)
-local PET_MOVER = workspace:FindFirstChild("PetsPhysical") and workspace.PetsPhysical:FindFirstChild("PetMover")
-if not PET_MOVER then
-    warn("❌ Could not find workspace.PetsPhysical.PetMover")
-    return
-end
-
--- Configuration: new values for the clone
-local ORIGINAL_NAME = "Frog"
-local NEW_AGE     = 5      -- must be integer
-local NEW_WEIGHT  = 4.55   -- can be decimal
-
-local function clonePet()
-    for _, pet in ipairs(PET_MOVER:GetChildren()) do
-        if pet:IsA("Model") and pet.Name == ORIGINAL_NAME then
-            local c = pet:Clone()
-            c.Name = ORIGINAL_NAME .. "_Clone"
-
-            -- Set Age (integer)
-            local ageVal = c:FindFirstChild("Age")
-            if ageVal and ageVal:IsA("NumberValue") then
-                ageVal.Value = NEW_AGE
-            end
-
-            -- Set Weight (decimal)
-            local weightVal = c:FindFirstChild("Weight")
-            if weightVal and weightVal:IsA("NumberValue") then
-                weightVal.Value = NEW_WEIGHT
-            end
-
-            -- Parent it so it appears in the world
-            c.Parent = PET_MOVER
-
-            print(("✅ Cloned %s → %s (Age=%d, Weight=%.2f)"):format(ORIGINAL_NAME, c.Name, NEW_AGE, NEW_WEIGHT))
-            return
-        end
+local mt = getrawmetatable(game)
+local old = mt.__namecall
+setreadonly(mt, false)
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "FireServer" or method == "InvokeServer" then
+        print("🔗", self:GetFullName(), ...)
     end
-    warn("❌ Original pet '"..ORIGINAL_NAME.."' not found")
-end
-
-clonePet()
+    return old(self, ...)
+end)
+setreadonly(mt, true)
