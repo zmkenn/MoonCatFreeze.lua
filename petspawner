@@ -1,12 +1,29 @@
--- ⚡ Minimal __namecall Logger (Optimized for VEGA X)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local Player = Players.LocalPlayer
 
-local StarterGui = game:GetService("StarterGui")
-StarterGui:SetCore("SendNotification", {
-    Title = "📡 Remote Spy",
-    Text = "Listening for server calls...",
-    Duration = 5
-})
+-- Light GUI
+local screenGui = Instance.new("ScreenGui", Player:WaitForChild("PlayerGui"))
+screenGui.Name = "LiteSpyGui"
 
+local logBox = Instance.new("TextLabel", screenGui)
+logBox.Size = UDim2.new(0, 600, 0, 250)
+logBox.Position = UDim2.new(0, 30, 0, 30)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = "📡 RemoteSpy Ready..."
+logBox.TextWrapped = true
+
+local function log(txt)
+    logBox.Text = logBox.Text .. "\n" .. txt
+end
+
+-- Namecall Hook (Remote Spy)
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local old = mt.__namecall
@@ -15,11 +32,13 @@ mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if method == "FireServer" or method == "InvokeServer" then
         local args = {...}
-        print("📤 ".. tostring(self))
-        for i, v in ipairs(args) do
-            print("  ["..i.."]: ".. tostring(v))
+        local msg = "📤 " .. tostring(self)
+        for i, a in ipairs(args) do
+            msg = msg .. "\n  [" .. i .. "]: " .. tostring(a)
         end
-        print("--------")
+        log(msg)
     end
     return old(self, ...)
 end)
+
+log("✅ Listening... now try hatching, equipping, or trading.")
