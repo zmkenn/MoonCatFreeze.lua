@@ -1,5 +1,5 @@
--- ✅ Deep Pet Scanner GUI (Find UUID-like values)
--- Displays all internal values of pets to detect UUIDs, age, weight, etc.
+-- ✅ Full Pet Scanner v2 (Broader coverage)
+-- Logs all models in Workspace.PetsPhysical (even without "pet" in name)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- ✅ GUI Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "DeepPetScannerGUI"
+screenGui.Name = "FullPetScannerGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -22,18 +22,18 @@ logBox.TextWrapped = true
 logBox.TextScaled = false
 logBox.Font = Enum.Font.Code
 logBox.TextSize = 14
-logBox.Text = "🔍 Deep scan initialized...\n"
+logBox.Text = "🔍 Scanning PetsPhysical...\n"
 logBox.Parent = screenGui
 
 local function log(text)
     logBox.Text = logBox.Text .. text .. "\n"
 end
 
-local function scanPets()
-    for _, pet in pairs(Workspace:GetDescendants()) do
-        if pet:IsA("Model") and pet.Name:lower():find("pet") then
-            log("--- 🐾 " .. pet:GetFullName())
-            for _, child in ipairs(pet:GetChildren()) do
+local function scanFolder(folder)
+    for _, model in ipairs(folder:GetDescendants()) do
+        if model:IsA("Model") then
+            log("--- 🐾 " .. model:GetFullName())
+            for _, child in ipairs(model:GetChildren()) do
                 if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("ObjectValue") then
                     log("🔹 " .. child.Name .. " = " .. tostring(child.Value))
                 end
@@ -42,12 +42,21 @@ local function scanPets()
     end
 end
 
+local function scanAll()
+    local petFolder = Workspace:FindFirstChild("PetsPhysical")
+    if petFolder then
+        scanFolder(petFolder)
+    else
+        log("❌ PetsPhysical not found in Workspace.")
+    end
+end
+
 -- Scan once and then every 5 seconds
-scanPets()
+scanAll()
 task.spawn(function()
     while task.wait(5) do
-        scanPets()
+        scanAll()
     end
 end)
 
-log("✅ Deep Pet Scanner is running...")
+log("✅ Deep Scan running in PetsPhysical...")
