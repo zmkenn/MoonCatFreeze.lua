@@ -1,5 +1,5 @@
--- ✅ Pet UUID Logger GUI
--- Displays pet UUIDs, names, weights, and ages if available.
+-- ✅ Deep Pet Scanner GUI (Find UUID-like values)
+-- Displays all internal values of pets to detect UUIDs, age, weight, etc.
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -7,7 +7,7 @@ local LocalPlayer = Players.LocalPlayer
 
 -- ✅ GUI Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PetUUIDLoggerGUI"
+screenGui.Name = "DeepPetScannerGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -22,7 +22,7 @@ logBox.TextWrapped = true
 logBox.TextScaled = false
 logBox.Font = Enum.Font.Code
 logBox.TextSize = 14
-logBox.Text = "🔍 Scanning pets for UUIDs...\n"
+logBox.Text = "🔍 Deep scan initialized...\n"
 logBox.Parent = screenGui
 
 local function log(text)
@@ -32,20 +32,17 @@ end
 local function scanPets()
     for _, pet in pairs(Workspace:GetDescendants()) do
         if pet:IsA("Model") and pet.Name:lower():find("pet") then
-            local uuid = pet:FindFirstChild("UUID") or pet:FindFirstChild("PetID") or pet:FindFirstChild("UniqueID")
-            local age = pet:FindFirstChild("Age")
-            local weight = pet:FindFirstChild("Weight")
-            if uuid then
-                log("🐾 Pet: " .. pet.Name ..
-                    " | UUID: " .. tostring(uuid.Value) ..
-                    (age and (" | Age: " .. tostring(age.Value)) or "") ..
-                    (weight and (" | KG: " .. tostring(weight.Value)) or ""))
+            log("--- 🐾 " .. pet:GetFullName())
+            for _, child in ipairs(pet:GetChildren()) do
+                if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("ObjectValue") then
+                    log("🔹 " .. child.Name .. " = " .. tostring(child.Value))
+                end
             end
         end
     end
 end
 
--- Scan once and then again every few seconds
+-- Scan once and then every 5 seconds
 scanPets()
 task.spawn(function()
     while task.wait(5) do
@@ -53,4 +50,4 @@ task.spawn(function()
     end
 end)
 
-log("✅ UUID Logger is running...")
+log("✅ Deep Pet Scanner is running...")
