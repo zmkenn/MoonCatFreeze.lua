@@ -1,28 +1,25 @@
--- ✅ __namecall Deep Hook Logger (Catches EVERYTHING)
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+-- ⚡ Minimal __namecall Logger (Optimized for VEGA X)
 
 local StarterGui = game:GetService("StarterGui")
 StarterGui:SetCore("SendNotification", {
-    Title = "📡 Remote Spy Active",
-    Text = "Waiting for server calls...",
+    Title = "📡 Remote Spy",
+    Text = "Listening for server calls...",
     Duration = 5
 })
 
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
-
-local oldNamecall = mt.__namecall
+local old = mt.__namecall
 
 mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if method == "FireServer" or method == "InvokeServer" then
         local args = {...}
-        rconsoleprint("📤 ".. tostring(self) .. "\n")
+        print("📤 ".. tostring(self))
         for i, v in ipairs(args) do
-            rconsoleprint("  ["..i.."]: "..tostring(v).."\n")
+            print("  ["..i.."]: ".. tostring(v))
         end
-        rconsoleprint("------\n")
+        print("--------")
     end
-    return oldNamecall(self, ...)
+    return old(self, ...)
 end)
