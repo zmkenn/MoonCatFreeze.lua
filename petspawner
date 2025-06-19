@@ -1,72 +1,56 @@
--- ✅ GUI Pet Spawner (Local Test Only)
-local player = game.Players.LocalPlayer
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "PetSpawner"
+-- ✅ Pet UUID Logger GUI
+-- Displays pet UUIDs, names, weights, and ages if available.
 
--- Background
-local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 300, 0, 220)
-frame.Position = UDim2.new(0, 100, 0, 100)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-frame.BorderSizePixel = 0
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
 
--- Inputs
-local function createLabelAndInput(text, posY)
-	local label = Instance.new("TextLabel", frame)
-	label.Text = text
-	label.TextColor3 = Color3.fromRGB(255,255,255)
-	label.BackgroundTransparency = 1
-	label.Position = UDim2.new(0, 10, 0, posY)
-	label.Size = UDim2.new(0, 100, 0, 25)
-	label.TextXAlignment = Enum.TextXAlignment.Left
-	
-	local input = Instance.new("TextBox", frame)
-	input.Position = UDim2.new(0, 120, 0, posY)
-	input.Size = UDim2.new(0, 150, 0, 25)
-	input.PlaceholderText = text
-	input.Text = ""
-	input.BackgroundColor3 = Color3.fromRGB(50,50,50)
-	input.TextColor3 = Color3.new(1,1,1)
-	input.ClearTextOnFocus = false
-	return input
+-- ✅ GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PetUUIDLoggerGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Position = UDim2.new(0, 20, 0, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
+logBox.TextXAlignment = Enum.TextXAlignment.Left
+logBox.TextYAlignment = Enum.TextYAlignment.Top
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = "🔍 Scanning pets for UUIDs...\n"
+logBox.Parent = screenGui
+
+local function log(text)
+    logBox.Text = logBox.Text .. text .. "\n"
 end
 
-local petInput = createLabelAndInput("Pet Name", 10)
-local ageInput = createLabelAndInput("Age (e.g. 2)", 45)
-local weightInput = createLabelAndInput("Weight (e.g. 4.55)", 80)
+local function scanPets()
+    for _, pet in pairs(Workspace:GetDescendants()) do
+        if pet:IsA("Model") and pet.Name:lower():find("pet") then
+            local uuid = pet:FindFirstChild("UUID") or pet:FindFirstChild("PetID") or pet:FindFirstChild("UniqueID")
+            local age = pet:FindFirstChild("Age")
+            local weight = pet:FindFirstChild("Weight")
+            if uuid then
+                log("🐾 Pet: " .. pet.Name ..
+                    " | UUID: " .. tostring(uuid.Value) ..
+                    (age and (" | Age: " .. tostring(age.Value)) or "") ..
+                    (weight and (" | KG: " .. tostring(weight.Value)) or ""))
+            end
+        end
+    end
+end
 
--- Spawn Button
-local spawnBtn = Instance.new("TextButton", frame)
-spawnBtn.Position = UDim2.new(0, 10, 0, 130)
-spawnBtn.Size = UDim2.new(0, 260, 0, 40)
-spawnBtn.Text = "Spawn Pet"
-spawnBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-spawnBtn.TextColor3 = Color3.new(1,1,1)
-spawnBtn.Font = Enum.Font.SourceSansBold
-spawnBtn.TextSize = 20
-
--- Action
-spawnBtn.MouseButton1Click:Connect(function()
-	local petName = petInput.Text
-	local age = tonumber(ageInput.Text)
-	local weight = tonumber(weightInput.Text)
-	
-	if not petName or petName == "" or not age or not weight then
-		warn("❌ Invalid input.")
-		return
-	end
-
-	local petTemplate = workspace.PetsPhysical:FindFirstChild("PetMover")
-	if not petTemplate then warn("❌ PetMover missing.") return end
-
-	for _, pet in pairs(petTemplate:GetChildren()) do
-		if pet.Name:lower() == petName:lower() then
-			local clone = pet:Clone()
-			clone.Parent = workspace
-			clone:SetPrimaryPartCFrame(player.Character.HumanoidRootPart.CFrame * CFrame.new(math.random(-5, 5), 0, math.random(-5, 5)))
-			clone.Name = petName .. "_Clone"
-			print("✅ Spawned", petName, "with Age:", age, "Weight:", weight)
-			break
-		end
-	end
+-- Scan once and then again every few seconds
+scanPets()
+task.spawn(function()
+    while task.wait(5) do
+        scanPets()
+    end
 end)
+
+log("✅ UUID Logger is running...")
