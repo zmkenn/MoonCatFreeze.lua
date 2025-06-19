@@ -1,121 +1,28 @@
--- ✅ Full Pet Scanner + RemoteEvent Logger (Deep Hook + GUI Interaction Tracking)
-
+-- ✅ __namecall Deep Hook Logger (Catches EVERYTHING)
 local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local StarterGui = game:GetService("StarterGui")
-local StarterPlayer = game:GetService("StarterPlayer")
-local CoreGui = game:GetService("CoreGui")
-
 local LocalPlayer = Players.LocalPlayer
 
--- ✅ GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "PetRemoteSpyGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+local StarterGui = game:GetService("StarterGui")
+StarterGui:SetCore("SendNotification", {
+    Title = "📡 Remote Spy Active",
+    Text = "Waiting for server calls...",
+    Duration = 5
+})
 
-local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(0, 700, 0, 400)
-logBox.Position = UDim2.new(0, 20, 0, 20)
-logBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.TextXAlignment = Enum.TextXAlignment.Left
-logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.TextWrapped = true
-logBox.TextScaled = false
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
-logBox.Text = "🔍 Scanning PetsPhysical & Listening for RemoteEvents...\n"
-logBox.Parent = screenGui
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
 
-local function log(text)
-    logBox.Text = logBox.Text .. text .. "\n"
-end
+local oldNamecall = mt.__namecall
 
--- 🔎 Step 1: Scan for all pets in PetsPhysical
-local function scanFolder(folder)
-    for _, model in ipairs(folder:GetDescendants()) do
-        if model:IsA("Model") then
-            log("--- 🐾 " .. model:GetFullName())
-            for _, child in ipairs(model:GetChildren()) do
-                if child:IsA("StringValue") or child:IsA("IntValue") or child:IsA("NumberValue") or child:IsA("ObjectValue") then
-                    log("🔹 " .. child.Name .. " = " .. tostring(child.Value))
-                end
-            end
+mt.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "FireServer" or method == "InvokeServer" then
+        local args = {...}
+        rconsoleprint("📤 ".. tostring(self) .. "\n")
+        for i, v in ipairs(args) do
+            rconsoleprint("  ["..i.."]: "..tostring(v).."\n")
         end
+        rconsoleprint("------\n")
     end
-end
-
-local function scanAll()
-    local petFolder = Workspace:FindFirstChild("PetsPhysical")
-    if petFolder then
-        scanFolder(petFolder)
-    else
-        log("❌ PetsPhysical not found in Workspace.")
-    end
-end
-
--- 🔁 Repeat scan every 5s
-scanAll()
-task.spawn(function()
-    while task.wait(5) do
-        scanAll()
-    end
+    return oldNamecall(self, ...)
 end)
-
--- 🎯 Step 2: Hook all remotes deeply
-local function hookAllRemotes(root)
-    for _, v in pairs(root:GetDescendants()) do
-        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
-            if not v.__hooked then
-                v.__hooked = true
-                local original = v[method]
-                v[method] = function(self, ...)
-                    local args = {...}
-                    local str = "📤 " .. v:GetFullName() .. " called with:"
-                    for i, a in ipairs(args) do
-                        str = str .. "\n   [" .. i .. "]: " .. tostring(a)
-                    end
-                    log(str)
-                    return original(self, ...)
-                end
-            end
-        end
-    end
-end
-
--- 🔁 Apply to all likely locations
-local function deepHook()
-    hookAllRemotes(ReplicatedStorage)
-    hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
-    hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
-    hookAllRemotes(Workspace)
-    hookAllRemotes(CoreGui)
-    hookAllRemotes(StarterGui)
-    hookAllRemotes(StarterPlayer:WaitForChild("StarterPlayerScripts"))
-    hookAllRemotes(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
-    hookAllRemotes(LocalPlayer:WaitForChild("PlayerGui"))
-end
-
-deepHook()
-
--- 👁️ Step 3: Monitor button clicks (GUI interactions)
-local function watchButtons(root)
-    for _, obj in pairs(root:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-            if not obj.__hooked then
-                obj.__hooked = true
-                obj.MouseButton1Click:Connect(function()
-                    log("🖱️ Clicked: " .. obj:GetFullName())
-                    deepHook() -- rehook if new remotes are added
-                end)
-            end
-        end
-    end
-end
-
-watchButtons(LocalPlayer:WaitForChild("PlayerGui"))
-
-log("✅ Remote + Button hooks active. Use inventory or hatch UI to try again.")
