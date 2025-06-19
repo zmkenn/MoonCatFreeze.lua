@@ -1,5 +1,4 @@
--- ✅ Full Pet Scanner + RemoteEvent Logger
--- Logs pets and intercepts remote calls possibly involving UUIDs
+-- ✅ Full Pet Scanner + RemoteEvent Logger (Extended to PlayerScripts & Backpack)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -61,24 +60,30 @@ task.spawn(function()
     end
 end)
 
--- 🎯 Step 2: Hook all remotes in ReplicatedStorage
-local function hookRemotes()
-    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+-- 🎯 Step 2: Hook all remotes
+local function hookAllRemotes(root)
+    for _, v in pairs(root:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
-            local original = v[v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"]
             local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
-            v[method] = function(self, ...)
-                local args = {...}
-                local str = "📤 " .. v:GetFullName() .. " called with:"
-                for i, a in ipairs(args) do
-                    str = str .. "\n   [" .. i .. "]: " .. tostring(a)
+            if not v.__hooked then
+                v.__hooked = true
+                local original = v[method]
+                v[method] = function(self, ...)
+                    local args = {...}
+                    local str = "📤 " .. v:GetFullName() .. " called with:"
+                    for i, a in ipairs(args) do
+                        str = str .. "\n   [" .. i .. "]: " .. tostring(a)
+                    end
+                    log(str)
+                    return original(self, ...)
                 end
-                log(str)
-                return original(self, ...)
             end
         end
     end
 end
 
-hookRemotes()
-log("✅ Listening for pet-related remote activity...")
+hookAllRemotes(ReplicatedStorage)
+hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
+hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
+hookAllRemotes(Workspace)
+log("✅ Extended Remote hook active. Try equipping, hatching, or trading a pet.")
