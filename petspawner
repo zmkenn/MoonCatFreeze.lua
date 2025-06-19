@@ -1,32 +1,33 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 
--- ✅ Create lightweight GUI
+-- GUI Setup
 local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "RemoteLoggerLite"
+gui.Name = "RemotePetSpyLite"
 
 local logBox = Instance.new("TextLabel", gui)
 logBox.Size = UDim2.new(0, 600, 0, 300)
 logBox.Position = UDim2.new(0, 20, 0, 20)
-logBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+logBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
 logBox.Font = Enum.Font.Code
 logBox.TextSize = 14
 logBox.TextWrapped = true
 logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.Text = "📡 Remote Spy Ready..."
+logBox.Text = "🔍 Listening for remotes..."
 
--- ✅ Logger function
-local function log(text)
-    logBox.Text = logBox.Text .. "\n" .. text
-    if #logBox.Text > 10000 then -- Limit to prevent lag
-        logBox.Text = "📡 Remote Spy Log Reset...\n"
+-- Limit text to avoid lag
+local function log(msg)
+    if #logBox.Text > 8000 then
+        logBox.Text = "🔁 Log reset...\n"
     end
+    logBox.Text = logBox.Text .. "\n" .. msg
 end
 
--- ✅ Hook __namecall to log remote calls
+-- Hook only remotes
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 local old = mt.__namecall
@@ -35,13 +36,13 @@ mt.__namecall = newcclosure(function(self, ...)
     local method = getnamecallmethod()
     if method == "FireServer" or method == "InvokeServer" then
         local args = {...}
-        local msg = "📤 " .. tostring(self)
-        for i, a in ipairs(args) do
-            msg = msg .. "\n   [" .. i .. "]: " .. tostring(a)
+        local text = "📤 " .. tostring(self)
+        for i, v in ipairs(args) do
+            text = text .. "\n   [" .. i .. "]: " .. tostring(v)
         end
-        log(msg)
+        log(text)
     end
     return old(self, ...)
 end)
 
-log("✅ Listening for RemoteEvents... Try hatching or duplicating.")
+log("✅ Now hatch, equip, or trade to log remotes.")
