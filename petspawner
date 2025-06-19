@@ -1,18 +1,19 @@
--- ✅ Full Pet Scanner v2 (Broader coverage)
--- Logs all models in Workspace.PetsPhysical (even without "pet" in name)
+-- ✅ Full Pet Scanner + RemoteEvent Logger
+-- Logs pets and intercepts remote calls possibly involving UUIDs
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 -- ✅ GUI Setup
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FullPetScannerGUI"
+screenGui.Name = "PetRemoteSpyGUI"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local logBox = Instance.new("TextLabel")
-logBox.Size = UDim2.new(0, 600, 0, 400)
+logBox.Size = UDim2.new(0, 700, 0, 400)
 logBox.Position = UDim2.new(0, 20, 0, 20)
 logBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
@@ -22,13 +23,14 @@ logBox.TextWrapped = true
 logBox.TextScaled = false
 logBox.Font = Enum.Font.Code
 logBox.TextSize = 14
-logBox.Text = "🔍 Scanning PetsPhysical...\n"
+logBox.Text = "🔍 Scanning PetsPhysical & Listening for RemoteEvents...\n"
 logBox.Parent = screenGui
 
 local function log(text)
     logBox.Text = logBox.Text .. text .. "\n"
 end
 
+-- 🔎 Step 1: Scan for all pets in PetsPhysical
 local function scanFolder(folder)
     for _, model in ipairs(folder:GetDescendants()) do
         if model:IsA("Model") then
@@ -51,7 +53,7 @@ local function scanAll()
     end
 end
 
--- Scan once and then every 5 seconds
+-- 🔁 Repeat scan every 5s
 scanAll()
 task.spawn(function()
     while task.wait(5) do
@@ -59,4 +61,24 @@ task.spawn(function()
     end
 end)
 
-log("✅ Deep Scan running in PetsPhysical...")
+-- 🎯 Step 2: Hook all remotes in ReplicatedStorage
+local function hookRemotes()
+    for _, v in pairs(ReplicatedStorage:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            local original = v[v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"]
+            local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
+            v[method] = function(self, ...)
+                local args = {...}
+                local str = "📤 " .. v:GetFullName() .. " called with:"
+                for i, a in ipairs(args) do
+                    str = str .. "\n   [" .. i .. "]: " .. tostring(a)
+                end
+                log(str)
+                return original(self, ...)
+            end
+        end
+    end
+end
+
+hookRemotes()
+log("✅ Listening for pet-related remote activity...")
