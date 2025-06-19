@@ -1,48 +1,112 @@
+-- ✅ Optimized Pet Scanner + Remote Hooker (No Freeze Version)
+
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+
 local LocalPlayer = Players.LocalPlayer
 
--- GUI Setup
-local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-gui.Name = "RemotePetSpyLite"
+-- 🔧 GUI Setup
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "PetRemoteSpyGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-local logBox = Instance.new("TextLabel", gui)
-logBox.Size = UDim2.new(0, 600, 0, 300)
+local logBox = Instance.new("TextLabel")
+logBox.Size = UDim2.new(0, 700, 0, 400)
 logBox.Position = UDim2.new(0, 20, 0, 20)
 logBox.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 logBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-logBox.Font = Enum.Font.Code
-logBox.TextSize = 14
-logBox.TextWrapped = true
 logBox.TextXAlignment = Enum.TextXAlignment.Left
 logBox.TextYAlignment = Enum.TextYAlignment.Top
-logBox.Text = "🔍 Listening for remotes..."
+logBox.TextWrapped = true
+logBox.TextScaled = false
+logBox.Font = Enum.Font.Code
+logBox.TextSize = 14
+logBox.Text = "🔍 Ready to scan and listen for RemoteEvents...\n"
+logBox.Parent = screenGui
 
--- Limit text to avoid lag
-local function log(msg)
+-- 🔘 Button: Scan Now
+local scanButton = Instance.new("TextButton")
+scanButton.Size = UDim2.new(0, 100, 0, 30)
+scanButton.Position = UDim2.new(0, 740, 0, 20)
+scanButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+scanButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+scanButton.Font = Enum.Font.Code
+scanButton.TextSize = 14
+scanButton.Text = "Scan Now"
+scanButton.Parent = screenGui
+
+-- 📝 Logger Function
+local function log(text)
     if #logBox.Text > 8000 then
-        logBox.Text = "🔁 Log reset...\n"
+        logBox.Text = "🔁 Log cleared to avoid lag.\n"
     end
-    logBox.Text = logBox.Text .. "\n" .. msg
+    logBox.Text = logBox.Text .. text .. "\n"
 end
 
--- Hook only remotes
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local old = mt.__namecall
-
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    if method == "FireServer" or method == "InvokeServer" then
-        local args = {...}
-        local text = "📤 " .. tostring(self)
-        for i, v in ipairs(args) do
-            text = text .. "\n   [" .. i .. "]: " .. tostring(v)
+-- 🔍 Pet Scanner
+local function scanAll()
+    local petFolder = Workspace:FindFirstChild("PetsPhysical")
+    if petFolder then
+        for _, model in ipairs(petFolder:GetDescendants()) do
+            if model:IsA("Model") then
+                log("🐾 Found Model: " .. model:GetFullName())
+                for _, v in ipairs(model:GetChildren()) do
+                    if v:IsA("ValueBase") then
+                        log("   🔹 " .. v.Name .. " = " .. tostring(v.Value))
+                    end
+                end
+            end
         end
-        log(text)
+    else
+        log("❌ PetsPhysical not found.")
     end
-    return old(self, ...)
-end)
+end
 
-log("✅ Now hatch, equip, or trade to log remotes.")
+scanButton.MouseButton1Click:Connect(scanAll) -- Manual scanning only
+
+-- 🎯 Hook Remote Calls
+local function hookAllRemotes(root)
+    for _, v in pairs(root:GetDescendants()) do
+        if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
+            local method = v:IsA("RemoteEvent") and "FireServer" or "InvokeServer"
+            if not v.__hooked then
+                v.__hooked = true
+                local original = v[method]
+                v[method] = function(self, ...)
+                    local args = {...}
+                    local str = "📤 " .. v:GetFullName()
+                    for i, a in ipairs(args) do
+                        str = str .. "\n   [" .. i .. "]: " .. tostring(a)
+                    end
+                    log(str)
+                    return original(self, ...)
+                end
+            end
+        end
+    end
+end
+
+-- Hook remotes in all key locations once
+hookAllRemotes(ReplicatedStorage)
+hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
+hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
+hookAllRemotes(Workspace)
+hookAllRemotes(CoreGui)
+hookAllRemotes(LocalPlayer:WaitForChild("PlayerGui"))
+
+-- 🖱️ Watch for GUI button clicks
+for _, obj in pairs(LocalPlayer.PlayerGui:GetDescendants()) do
+    if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+        if not obj.__hooked then
+            obj.__hooked = true
+            obj.MouseButton1Click:Connect(function()
+                log("🖱️ Clicked: " .. obj:GetFullName())
+            end)
+        end
+    end
+end
+
+log("✅ Script loaded. Use the UI or hatch pets to catch remote events.")
