@@ -1,4 +1,4 @@
--- ✅ Full Pet Scanner + RemoteEvent Logger (Deep Hook)
+-- ✅ Full Pet Scanner + RemoteEvent Logger (Deep Hook + GUI Interaction Tracking)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -87,13 +87,35 @@ local function hookAllRemotes(root)
 end
 
 -- 🔁 Apply to all likely locations
-hookAllRemotes(ReplicatedStorage)
-hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
-hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
-hookAllRemotes(Workspace)
-hookAllRemotes(CoreGui)
-hookAllRemotes(StarterGui)
-hookAllRemotes(StarterPlayer:WaitForChild("StarterPlayerScripts"))
-hookAllRemotes(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+local function deepHook()
+    hookAllRemotes(ReplicatedStorage)
+    hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
+    hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
+    hookAllRemotes(Workspace)
+    hookAllRemotes(CoreGui)
+    hookAllRemotes(StarterGui)
+    hookAllRemotes(StarterPlayer:WaitForChild("StarterPlayerScripts"))
+    hookAllRemotes(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+    hookAllRemotes(LocalPlayer:WaitForChild("PlayerGui"))
+end
 
-log("✅ Deep Remote hook active. Try equipping, hatching, or trading a pet now.")
+deepHook()
+
+-- 👁️ Step 3: Monitor button clicks (GUI interactions)
+local function watchButtons(root)
+    for _, obj in pairs(root:GetDescendants()) do
+        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+            if not obj.__hooked then
+                obj.__hooked = true
+                obj.MouseButton1Click:Connect(function()
+                    log("🖱️ Clicked: " .. obj:GetFullName())
+                    deepHook() -- rehook if new remotes are added
+                end)
+            end
+        end
+    end
+end
+
+watchButtons(LocalPlayer:WaitForChild("PlayerGui"))
+
+log("✅ Remote + Button hooks active. Use inventory or hatch UI to try again.")
