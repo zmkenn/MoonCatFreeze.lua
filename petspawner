@@ -1,8 +1,12 @@
--- ✅ Full Pet Scanner + RemoteEvent Logger (Extended to PlayerScripts & Backpack)
+-- ✅ Full Pet Scanner + RemoteEvent Logger (Deep Hook)
 
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local StarterPlayer = game:GetService("StarterPlayer")
+local CoreGui = game:GetService("CoreGui")
+
 local LocalPlayer = Players.LocalPlayer
 
 -- ✅ GUI Setup
@@ -60,7 +64,7 @@ task.spawn(function()
     end
 end)
 
--- 🎯 Step 2: Hook all remotes
+-- 🎯 Step 2: Hook all remotes deeply
 local function hookAllRemotes(root)
     for _, v in pairs(root:GetDescendants()) do
         if v:IsA("RemoteEvent") or v:IsA("RemoteFunction") then
@@ -82,8 +86,14 @@ local function hookAllRemotes(root)
     end
 end
 
+-- 🔁 Apply to all likely locations
 hookAllRemotes(ReplicatedStorage)
 hookAllRemotes(LocalPlayer:WaitForChild("PlayerScripts"))
 hookAllRemotes(LocalPlayer:WaitForChild("Backpack"))
 hookAllRemotes(Workspace)
-log("✅ Extended Remote hook active. Try equipping, hatching, or trading a pet.")
+hookAllRemotes(CoreGui)
+hookAllRemotes(StarterGui)
+hookAllRemotes(StarterPlayer:WaitForChild("StarterPlayerScripts"))
+hookAllRemotes(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
+
+log("✅ Deep Remote hook active. Try equipping, hatching, or trading a pet now.")
