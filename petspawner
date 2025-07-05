@@ -1,4 +1,3 @@
--- Hook FireServer to capture the pet gifting remote
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
 
@@ -9,10 +8,10 @@ mt.__namecall = newcclosure(function(self, ...)
 	local args = {...}
 
 	if method == "FireServer" and typeof(args[1]) == "string" and tostring(args[1]):lower():find("gift") then
-		print("🔥 Remote triggered:", self:GetFullName())
+		print("🔥 Remote found:", self:GetFullName())
 		print("Args:")
 		for i, v in ipairs(args) do
-			print(" ", i, "=", v)
+			print("  Arg", i, "=", v)
 		end
 	end
 
