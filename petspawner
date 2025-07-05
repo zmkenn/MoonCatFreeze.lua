@@ -1,19 +1,35 @@
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
 
-local old = mt.__namecall
+-- 1. Hook gift-related RemoteEvents
+for _, remote in pairs(ReplicatedStorage:WaitForChild("GameEvents"):GetChildren()) do
+    if remote:IsA("RemoteEvent") and string.lower(remote.Name):find("gift") then
+        print("✅ Hooked:", remote.Name)
+        local old; old = hookfunction(remote.FireServer, function(self, ...)
+            print("📤 Attempt to call:", self.Name)
+            for i,v in ipairs({...}) do
+                print("  Arg["..i.."]: ", v)
+            end
+            return old(self, ...)
+        end)
+    end
+end
 
-mt.__namecall = newcclosure(function(self, ...)
-	local method = getnamecallmethod()
-	local args = {...}
+-- 2. Try to find and open any Gift UI buttons in PlayerGui
+local found = false
+for _, obj in pairs(LocalPlayer:WaitForChild("PlayerGui"):GetDescendants()) do
+    if obj:IsA("TextButton") and string.lower(obj.Name):find("gift") then
+        print("🎁 Clicking button:", obj:GetFullName())
+        task.spawn(function()
+            pcall(function()
+                obj:Activate()
+            end)
+        end)
+        found = true
+    end
+end
 
-	if method == "FireServer" and typeof(args[1]) == "string" and tostring(args[1]):lower():find("gift") then
-		print("🔥 Remote found:", self:GetFullName())
-		print("Args:")
-		for i, v in ipairs(args) do
-			print("  Arg", i, "=", v)
-		end
-	end
-
-	return old(self, ...)
-end)
+if not found then
+    print("❌ No Gift buttons found in PlayerGui.")
+end
