@@ -1,41 +1,84 @@
--- ✅ FINAL Moon Cat Freeze Script for Delta
--- Upload this as MoonCatFreeze.lua in your GitHub repo
--- Use: loadstring(game:HttpGet("https://raw.githubusercontent.com/zmkenn/MoonCatFreeze.lua/main/MoonCatFreeze.lua"))()
+-- RollbackSecurityTest.server.lua
+-- USE IN A TEST COPY OF YOUR OWN EXPERIENCE
 
-repeat wait() until game:IsLoaded() and game.Players.LocalPlayer
+local Players = game:GetService("Players")
 
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local function getMoonCats()
-    local found = {}
-    for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("Model") and obj.Name:find("Moon Cat") then
-            local primary = obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")
-            if primary then
-                table.insert(found, {Model = obj, Part = primary, FreezeCFrame = primary.CFrame})
-            end
-        end
-    end
-    return found
+local TESTING = true
+
+-- Replace these two functions with your game's real profile functions.
+local function getState(player)
+	-- Example state
+	return {
+		Coins = player:GetAttribute("Coins") or 0,
+	}
 end
 
-local moonCats = getMoonCats()
+local function applyState(player, state)
+	player:SetAttribute("Coins", state.Coins)
+end
 
-RunService.Heartbeat:Connect(function()
-    for _, data in ipairs(moonCats) do
-        local model = data.Model
-        local part = data.Part
-        if model and part and part:IsDescendantOf(Workspace) then
-            for _, p in ipairs(model:GetDescendants()) do
-                if p:IsA("BasePart") then
-                    p.Anchored = true
-                    p.CFrame = data.FreezeCFrame
-                    p.Velocity = Vector3.zero
-                    p.RotVelocity = Vector3.zero
-                end
-            end
-        end
-    end
+local snapshots = {}
+
+local function copyTable(t)
+	local result = {}
+
+	for k, v in pairs(t) do
+		if type(v) == "table" then
+			result[k] = copyTable(v)
+		else
+			result[k] = v
+		end
+	end
+
+	return result
+end
+
+Players.PlayerAdded:Connect(function(player)
+	if not TESTING then
+		return
+	end
+
+	task.wait(2)
+
+	-- STATE A
+	local original = getState(player)
+	snapshots[player.UserId] = copyTable(original)
+
+	print("[ROLLBACK TEST] Original state:", original.Coins)
+
+	-- Simulate a transaction.
+	local changed = copyTable(original)
+	changed.Coins += 1000
+
+	applyState(player, changed)
+
+	print("[ROLLBACK TEST] Transaction applied:", changed.Coins)
+
+	-- Simulate the situation where the transaction happened
+	-- but persistence failed.
+	print("[ROLLBACK TEST] SIMULATING SAVE FAILURE")
+
+	task.wait(2)
+
+	-- Simulate loading the previously persisted state.
+	local oldState = snapshots[player.UserId]
+	applyState(player, oldState)
+
+	local final = getState(player)
+
+	if final.Coins == original.Coins then
+		warn(
+			"[ROLLBACK DETECTED]",
+			"Transaction state disappeared:",
+			changed.Coins,
+			"->",
+			final.Coins
+		)
+	else
+		print("[PASS] Transaction survived persistence test.")
+	end
 end)
 
-print("✅ Moon Cat FREEZE ACTIVE")
+Players.PlayerRemoving:Connect(function(player)
+	snapshots[player.UserId] = nil
+end)
